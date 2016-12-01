@@ -162,16 +162,16 @@ class CrossCorrWidget(QtGui.QWidget):
         self.initUI()
 
     def initUI(self):
-        prevButton = QtGui.QPushButton(QtGui.QIcon('prev.png'), '', self)
+        prevButton = QtGui.QPushButton(QtGui.QIcon('gui/prev.png'), '', self)
         prevButton.clicked.connect(partial(self.btnGrid.changePixmap, False))
 
-        nextButton = QtGui.QPushButton(QtGui.QIcon('next.png'), '', self)
+        nextButton = QtGui.QPushButton(QtGui.QIcon('gui/next.png'), '', self)
         nextButton.clicked.connect(partial(self.btnGrid.changePixmap, True))
 
-        lessButton = QtGui.QPushButton(QtGui.QIcon('less.png'), '', self)
+        lessButton = QtGui.QPushButton(QtGui.QIcon('gui/less.png'), '', self)
         lessButton.clicked.connect(partial(self.btnGrid.changeGrid, False))
 
-        moreButton = QtGui.QPushButton(QtGui.QIcon('more.png'), '', self)
+        moreButton = QtGui.QPushButton(QtGui.QIcon('gui/more.png'), '', self)
         moreButton.clicked.connect(partial(self.btnGrid.changeGrid, True))
 
         hbox_tl = QtGui.QHBoxLayout()
@@ -206,16 +206,16 @@ class CrossCorrWidget(QtGui.QWidget):
         self.shiftStepEdit.setFixedWidth(20)
         self.shiftStepEdit.setMaxLength(3)
 
-        upButton = QtGui.QPushButton(QtGui.QIcon('up.png'), '', self)
+        upButton = QtGui.QPushButton(QtGui.QIcon('gui/up.png'), '', self)
         upButton.clicked.connect(self.movePixmapUp)
 
-        downButton = QtGui.QPushButton(QtGui.QIcon('down.png'), '', self)
+        downButton = QtGui.QPushButton(QtGui.QIcon('gui/down.png'), '', self)
         downButton.clicked.connect(self.movePixmapDown)
 
-        leftButton = QtGui.QPushButton(QtGui.QIcon('left.png'), '', self)
+        leftButton = QtGui.QPushButton(QtGui.QIcon('gui/left.png'), '', self)
         leftButton.clicked.connect(self.movePixmapLeft)
 
-        rightButton = QtGui.QPushButton(QtGui.QIcon('right.png'), '', self)
+        rightButton = QtGui.QPushButton(QtGui.QIcon('gui/right.png'), '', self)
         rightButton.clicked.connect(self.movePixmapRight)
 
         hbox_mm = QtGui.QHBoxLayout()
@@ -497,7 +497,7 @@ class EwrWindow(QtGui.QMainWindow):
 
         self.move(300, 300)
         self.setWindowTitle('Cross correlation window')
-        self.setWindowIcon(QtGui.QIcon('world.png'))
+        self.setWindowIcon(QtGui.QIcon('gui/world.png'))
         self.show()
         self.setFixedSize(self.width(), self.height())     # disable window resizing
 
