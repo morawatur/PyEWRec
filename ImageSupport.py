@@ -4,7 +4,7 @@ from numba import cuda
 import cmath
 import Constants as const
 import CudaConfig as ccfg
-import CudaCrossCorr as ccc
+import CrossCorr as ccc
 
 #-------------------------------------------------------------------
 

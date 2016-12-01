@@ -3,9 +3,9 @@ from accelerate.cuda import fft as cufft
 from numba import cuda
 
 import CudaConfig as ccfg
-import CudaImageSupport as cimsup
-import CudaArray as carr
-import CudaPropagation as cprop
+import ImageSupport as cimsup
+import Array as carr
+import Propagation as cprop
 
 #-------------------------------------------------------------------
 

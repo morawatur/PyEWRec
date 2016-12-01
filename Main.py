@@ -2,7 +2,7 @@ import numpy as np
 from numba import cuda
 import Constants as const
 import Dm3Reader3 as dm3
-import CudaImageSupport as cimsup
+import ImageSupport as cimsup
 import GUI as gui
 
 cuda.select_device(0)

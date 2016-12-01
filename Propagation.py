@@ -3,9 +3,9 @@ from numba import cuda
 import math
 import Constants as const
 import CudaConfig as ccfg
-import CudaArray as carr
-import CudaImageSupport as cimsup
-import CudaCrossCorr as ccc
+import Array as carr
+import ImageSupport as cimsup
+import CrossCorr as ccc
 
 # -------------------------------------------------------------------
 

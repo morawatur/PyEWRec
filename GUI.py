@@ -7,9 +7,9 @@ import numpy as np
 from PyQt4 import QtGui
 
 import Constants as const
-import CudaCrossCorr as ccc
-import CudaImageSupport as cimsup
-import CudaPropagation as cprop
+import CrossCorr as ccc
+import ImageSupport as cimsup
+import Propagation as cprop
 
 # --------------------------------------------------------
 
