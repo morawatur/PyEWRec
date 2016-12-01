@@ -27,4 +27,4 @@ for idx in range(0, const.nFiles):
 
 imgList.UpdateLinks()
 
-commonCoords = gui.RunEwrWindow(imgList[0], const.gridDim)      # should return commonCoords for cropping
+gui.RunEwrWindow(imgList[0], const.gridDim)
