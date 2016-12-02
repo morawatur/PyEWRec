@@ -3,7 +3,7 @@ from numba import cuda
 import math
 import Constants as const
 import CudaConfig as ccfg
-import Array as arr
+import ArraySupport as arrsup
 import ImageSupport as imsup
 import CrossCorr as cc
 
@@ -118,9 +118,9 @@ def PerformIWFR(images, N):
             img = PropagateWave(img, backCTFunctions[idx])
             # img = PropagateToFocus(img)
             img.AmPh2ReIm()
-            exitWave.reIm = arr.AddTwoArrays(exitWave.reIm, img.reIm)
+            exitWave.reIm = arrsup.AddTwoArrays(exitWave.reIm, img.reIm)
 
-        exitWave.reIm = arr.MultArrayByScalar(exitWave.reIm, 1/len(images))
+        exitWave.reIm = arrsup.MultArrayByScalar(exitWave.reIm, 1/len(images))
 
         ewfAmPath = ewfResultsDir + ewfAmName + str(i+1) + '.png'
         ewfPhPath = ewfAmPath.replace(ewfAmName, ewfPhName)

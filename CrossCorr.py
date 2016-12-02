@@ -4,7 +4,7 @@ from numba import cuda
 
 import CudaConfig as ccfg
 import ImageSupport as imsup
-import Array as arr
+import ArraySupport as arrsup
 import Propagation as prop
 
 #-------------------------------------------------------------------
@@ -74,7 +74,7 @@ def CalcCrossCorrFun(img1, img2):
     fft3 = imsup.Image(fft1.height, fft1.width, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
     fft1.amPh = imsup.ConjugateAmPhMatrix(fft1.amPh)
     fft3.amPh = imsup.MultAmPhMatrices(fft1.amPh, fft2.amPh)
-    fft3.amPh.am = arr.CalcSqrtOfArray(fft3.amPh.am)			# mcf ON
+    fft3.amPh.am = arrsup.CalcSqrtOfArray(fft3.amPh.am)			# mcf ON
 
     # ---- ccf ----
     # fft3.amPh.am = fft1.amPh.am * fft2.amPh.am
@@ -108,7 +108,7 @@ def CalcAverageCrossCorrFun(img1, img2, nDiv):
 
     for frag1, frag2 in zip(fragsToCorrelate1, fragsToCorrelate2):
         ccf = CalcCrossCorrFun(frag1, frag2)
-        ccfAvg.amPh.am = arr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
+        ccfAvg.amPh.am = arrsup.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
 
     return ccfAvg
 
@@ -143,11 +143,11 @@ def FindMaxInImage(img):
 
 # @cuda.jit()
 @cuda.jit('void(float32[:, :], float32[:, :])')
-def ReduceArrayToFindMax_dev(arrInp, arrRed):
+def ReduceArrayToFindMax_dev(arr, arrRed):
     x, y = cuda.grid(2)
     if x >= arrRed.shape[0] or y >= arrRed.shape[1]:
         return
-    arrRed[x, y] = max(arrInp[2*x, 2*y], max(arrInp[2*x, 2*y+1], max(arrInp[2*x+1, 2*y], arrInp[2*x+1, 2*y+1])))
+    arrRed[x, y] = max(arr[2*x, 2*y], max(arr[2*x, 2*y+1], max(arr[2*x+1, 2*y], arr[2*x+1, 2*y+1])))
 
 # -------------------------------------------------------------------
 
@@ -173,11 +173,11 @@ def FindMinInImage(img):
 
 # @cuda.jit()
 @cuda.jit('void(float32[:, :], float32[:, :])')
-def ReduceArrayToFindMin_dev(arrInp, arrRed):
+def ReduceArrayToFindMin_dev(arr, arrRed):
     x, y = cuda.grid(2)
     if x >= arrRed.shape[0] or y >= arrRed.shape[1]:
         return
-    arrRed[x, y] = min(arrInp[2*x, 2*y], min(arrInp[2*x, 2*y+1], min(arrInp[2*x+1, 2*y], arrInp[2*x+1, 2*y+1])))
+    arrRed[x, y] = min(arr[2*x, 2*y], min(arr[2*x, 2*y+1], min(arr[2*x+1, 2*y], arr[2*x+1, 2*y+1])))
 
 # -------------------------------------------------------------------
 
@@ -322,7 +322,7 @@ def CalcPartialCrossCorrFun(img1, img2, nDiv, fragCoords):
 
     for frag1, frag2 in zip(fragsToCorrelate1, fragsToCorrelate2):
         ccf = CalcCrossCorrFun(frag1, frag2)
-        ccfAvg.amPh.am = arr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
+        ccfAvg.amPh.am = arrsup.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
 
     return ccfAvg
 
