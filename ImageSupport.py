@@ -4,7 +4,7 @@ from numba import cuda
 import cmath
 import Constants as const
 import CudaConfig as ccfg
-import CrossCorr as ccc
+import CrossCorr as cc
 
 #-------------------------------------------------------------------
 
@@ -245,12 +245,12 @@ def ScaleImage(img, newMin, newMax):
 # zrobic wersje na GPU
 def ScaleAmpImages(images):
     amMax = 0.0
-    amMin = ccc.FindMaxInImage(images[0])
+    amMin = cc.FindMaxInImage(images[0])
     # amMin = np.max(images[0].amPh.am)
 
     for img in images:
-        amMaxCurr = ccc.FindMaxInImage(img)
-        amMinCurr = ccc.FindMinInImage(img)
+        amMaxCurr = cc.FindMaxInImage(img)
+        amMinCurr = cc.FindMinInImage(img)
         # amMaxCurr = np.max(img.amPh.am)
         # amMinCurr = np.min(img.amPh.am)
         if amMaxCurr >= amMax:

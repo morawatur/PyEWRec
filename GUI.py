@@ -7,9 +7,9 @@ import numpy as np
 from PyQt4 import QtGui
 
 import Constants as const
-import CrossCorr as ccc
-import ImageSupport as cimsup
-import Propagation as cprop
+import CrossCorr as cc
+import ImageSupport as imsup
+import Propagation as prop
 
 # --------------------------------------------------------
 
@@ -52,7 +52,7 @@ class ButtonGridOnLabel(QtGui.QLabel):
         self.createGrid()
 
     def createPixmap(self):
-        qImg = QtGui.QImage(cimsup.ScaleImage(self.image.buffer, 0.0, 255.0).astype(np.uint8),
+        qImg = QtGui.QImage(imsup.ScaleImage(self.image.buffer, 0.0, 255.0).astype(np.uint8),
                            self.image.width, self.image.height, QtGui.QImage.Format_Indexed8)
         pixmap = QtGui.QPixmap(qImg)
         # pixmap.convertFromImage(qImg)
@@ -96,8 +96,8 @@ class ButtonGridOnLabel(QtGui.QLabel):
 
     def applyChangesToImage(self, image):
         image.UpdateImageFromBuffer()
-        cropCoords = cimsup.DetermineCropCoords(image.width, image.height, image.shift)
-        self.parent().commonCoords = cimsup.GetCommonArea(self.parent().commonCoords, cropCoords)
+        cropCoords = imsup.DetermineCropCoords(image.width, image.height, image.shift)
+        self.parent().commonCoords = imsup.GetCommonArea(self.parent().commonCoords, cropCoords)
 
     def applyChangesToAll(self):
         # self.applyChangesToImage(self.image)
@@ -112,11 +112,11 @@ class ButtonGridOnLabel(QtGui.QLabel):
         first = self.image
         while first.prev is not None:
             first = first.prev
-        imgList = cimsup.CreateImageListFromFirstImage(first)
+        imgList = imsup.CreateImageListFromFirstImage(first)
         for img in imgList:
             self.applyChangesToImage(img)
 
-        ccc.DetermineAbsoluteDefocus(imgList, const.idxInFocus)
+        cc.DetermineAbsoluteDefocus(imgList, const.idxInFocus)
         self.createPixmap()
         # super() instead of parent()?
         self.parent().parent().parent().statusBar().showMessage('All changes applied'.format(self.image.numInSeries))
@@ -260,19 +260,19 @@ class CrossCorrWidget(QtGui.QWidget):
         self.setLayout(vbox_main)
 
     def movePixmapUp(self):
-        ccc.MoveImageUp(self.btnGrid.image, int(self.shiftStepEdit.text()))
+        cc.MoveImageUp(self.btnGrid.image, int(self.shiftStepEdit.text()))
         self.btnGrid.createPixmap()
 
     def movePixmapDown(self):
-        ccc.MoveImageDown(self.btnGrid.image, int(self.shiftStepEdit.text()))
+        cc.MoveImageDown(self.btnGrid.image, int(self.shiftStepEdit.text()))
         self.btnGrid.createPixmap()
 
     def movePixmapLeft(self):
-        ccc.MoveImageLeft(self.btnGrid.image, int(self.shiftStepEdit.text()))
+        cc.MoveImageLeft(self.btnGrid.image, int(self.shiftStepEdit.text()))
         self.btnGrid.createPixmap()
 
     def movePixmapRight(self):
-        ccc.MoveImageRight(self.btnGrid.image, int(self.shiftStepEdit.text()))
+        cc.MoveImageRight(self.btnGrid.image, int(self.shiftStepEdit.text()))
         self.btnGrid.createPixmap()
 
     def getFragCoords(self):
@@ -315,25 +315,25 @@ class CrossCorrWidget(QtGui.QWidget):
         fragCoords = self.getFragCoords()
         exitWave = self.parent().parent().getIwfrWidgetRef().exitWave
         imageSim = simulateImageForDefocus(exitWave, self.btnGrid.image.defocus)
-        roiCoords = cimsup.DetermineEqualCropCoords(self.btnGrid.image.width, imageSim.width)
-        roiImage = cimsup.CropImageROICoords(self.btnGrid.image, roiCoords)
-        self.btnGrid.image = cimsup.CreateImageWithBufferFromImage(roiImage)
+        roiCoords = imsup.DetermineEqualCropCoords(self.btnGrid.image.width, imageSim.width)
+        roiImage = imsup.CropImageROICoords(self.btnGrid.image, roiCoords)
+        self.btnGrid.image = imsup.CreateImageWithBufferFromImage(roiImage)
         self.btnGrid.image.MoveToCPU()
         self.correlateWithImage(imageSim, fragCoords, False)
 
     def correlateWithImage(self, imageToCorr, fragCoords, wat):
         image = self.btnGrid.image
-        mcfBest = ccc.MaximizeMCFCore(imageToCorr, image, self.btnGrid.gridDim, fragCoords,
+        mcfBest = cc.MaximizeMCFCore(imageToCorr, image, self.btnGrid.gridDim, fragCoords,
                                       float(self.dfMinEdit.input.text()),
                                       float(self.dfMaxEdit.input.text()),
                                       float(self.dfStepEdit.input.text()))
-        shift = ccc.GetShift(mcfBest)
+        shift = cc.GetShift(mcfBest)
         image.shift = (image.prev.shift if wat else [0, 0])
-        ccc.ShiftImageAmpBuffer(image, shift)
+        cc.ShiftImageAmpBuffer(image, shift)
         self.btnGrid.image.defocus = mcfBest.defocus
         self.btnGrid.createPixmap()
         ccfPath = const.ccfResultsDir + const.ccfName + str(image.numInSeries) + '.png'
-        cimsup.SaveAmpImage(mcfBest, ccfPath)
+        imsup.SaveAmpImage(mcfBest, ccfPath)
 
     def accessLabels(self):
         return self.imgNumLabel, self.defocusLabel
@@ -423,19 +423,19 @@ class IwfrWidget(QtGui.QWidget):
         self.imageSim.UpdateBuffer()
 
     def displayFFT(self):
-        fft = ccc.FFT(self.imageSim)
-        diff = ccc.FFT2Diff(fft)
+        fft = cc.FFT(self.imageSim)
+        diff = cc.FFT2Diff(fft)
         diff.ReIm2AmPh()
         diff.MoveToCPU()
         diffToDisp = np.log10(diff.amPh.am)
-        self.imageSim.buffer = cimsup.ScaleImage(diffToDisp, 0.0, 255.0)
+        self.imageSim.buffer = imsup.ScaleImage(diffToDisp, 0.0, 255.0)
         self.createPixmap()
         self.imageSim.UpdateBuffer()
 
     def createPixmap(self):
-        paddedExitWave = cimsup.PadImageBufferToNx512(self.imageSim, np.max(self.imageSim.buffer))
+        paddedExitWave = imsup.PadImageBufferToNx512(self.imageSim, np.max(self.imageSim.buffer))
 
-        qImg = QtGui.QImage(cimsup.ScaleImage(paddedExitWave.buffer, 0.0, 255.0).astype(np.uint8),
+        qImg = QtGui.QImage(imsup.ScaleImage(paddedExitWave.buffer, 0.0, 255.0).astype(np.uint8),
                             paddedExitWave.width, paddedExitWave.height, QtGui.QImage.Format_Indexed8)
         pixmap = QtGui.QPixmap(qImg)
         pixmap = pixmap.scaledToWidth(const.ccWidgetDim)    # nie potrafi skalowac ulamkowo
@@ -450,27 +450,27 @@ class IwfrWidget(QtGui.QWidget):
             self.createPixmap()
 
     def runEwr(self):
-        squareCoords = cimsup.MakeSquareCoords(self.parent().parent().getCcWidgetRef().commonCoords)
+        squareCoords = imsup.MakeSquareCoords(self.parent().parent().getCcWidgetRef().commonCoords)
         print(squareCoords)
-        imgListAll = cimsup.CreateImageListFromFirstImage(self.imageSim)
+        imgListAll = imsup.CreateImageListFromFirstImage(self.imageSim)
         firstIdx = int(self.numOfFirstEdit.input.text()) - 1
         howMany = int(self.numOfImagesEdit.input.text())
-        imgListToEWR = cimsup.CreateImageListFromImage(imgListAll[firstIdx], howMany)
+        imgListToEWR = imsup.CreateImageListFromImage(imgListAll[firstIdx], howMany)
         for img, idx in zip(imgListToEWR, range(len(imgListToEWR))):
             print('df = {0:.1f} nm'.format(img.defocus * 1e9))
-            imgListToEWR[idx] = cimsup.CropImageROICoords(img, squareCoords)
+            imgListToEWR[idx] = imsup.CropImageROICoords(img, squareCoords)
             cropPath = const.cropResultsDir + const.cropName + str(idx + 1) + '.png'
-            cimsup.SaveAmpImage(imgListToEWR[idx], cropPath)
-        exitWave = cprop.PerformIWFR(imgListToEWR, int(self.numOfItersEdit.input.text()))
-        self.exitWave = cimsup.CreateImageWithBufferFromImage(exitWave)
-        self.imageSim = cimsup.CreateImageWithBufferFromImage(self.exitWave)    # copy self.exitWave to self.imageSim
+            imsup.SaveAmpImage(imgListToEWR[idx], cropPath)
+        exitWave = prop.PerformIWFR(imgListToEWR, int(self.numOfItersEdit.input.text()))
+        self.exitWave = imsup.CreateImageWithBufferFromImage(exitWave)
+        self.imageSim = imsup.CreateImageWithBufferFromImage(self.exitWave)    # copy self.exitWave to self.imageSim
         self.imageSim.MoveToCPU()
         self.createPixmap()
 
     def simulateImage(self):
         dfProp = float(self.dfToSimEdit.input.text()) * 1e-6
-        imageSim = cprop.PropagateBackToDefocus(self.exitWave, dfProp)
-        self.imageSim = cimsup.CreateImageWithBufferFromImage(imageSim)
+        imageSim = prop.PropagateBackToDefocus(self.exitWave, dfProp)
+        self.imageSim = imsup.CreateImageWithBufferFromImage(imageSim)
         self.imageSim.UpdateBuffer()
         self.imageSim.MoveToCPU()
         self.amplitudeRadioButton.setChecked(True)
@@ -510,8 +510,8 @@ class EwrWindow(QtGui.QMainWindow):
 # --------------------------------------------------------
 
 def simulateImageForDefocus(exitWave, dfProp):
-    imageSim = cprop.PropagateBackToDefocus(exitWave, dfProp)
-    imageSim = cimsup.CreateImageWithBufferFromImage(imageSim)
+    imageSim = prop.PropagateBackToDefocus(exitWave, dfProp)
+    imageSim = imsup.CreateImageWithBufferFromImage(imageSim)
     imageSim.UpdateBuffer()
     imageSim.MoveToCPU()
     return imageSim

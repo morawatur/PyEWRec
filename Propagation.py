@@ -3,15 +3,15 @@ from numba import cuda
 import math
 import Constants as const
 import CudaConfig as ccfg
-import Array as carr
-import ImageSupport as cimsup
-import CrossCorr as ccc
+import Array as arr
+import ImageSupport as imsup
+import CrossCorr as cc
 
 # -------------------------------------------------------------------
 
 def CalcTransferFunction(imgDim, pxDim, defocusChange):
     blockDim, gridDim = ccfg.DetermineCudaConfig(imgDim)
-    ctf = cimsup.Image(imgDim, imgDim, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
+    ctf = imsup.Image(imgDim, imgDim, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
     ctfCoeff = np.pi * const.ewfLambda * defocusChange
     CalcTransferFunction_dev[gridDim, blockDim](ctf.amPh.am, ctf.amPh.ph, imgDim, pxDim, ctfCoeff)
     ctf.defocus = defocusChange
@@ -51,16 +51,16 @@ def CalcTransferFunction_dev(ctfAm, ctfPh, imgDim, pxDim, ctfCoeff):
 # -------------------------------------------------------------------
 
 def PropagateWave(img, ctf):
-    fft = ccc.FFT(img)
+    fft = cc.FFT(img)
     fft.ReIm2AmPh()
 
-    ctf = ccc.Diff2FFT(ctf)     # !!!
+    ctf = cc.Diff2FFT(ctf)     # !!!
     ctf.ReIm2AmPh()
 
-    fftProp = cimsup.Image(img.height, img.width, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
-    fftProp.amPh = cimsup.MultAmPhMatrices(fft.amPh, ctf.amPh)
+    fftProp = imsup.Image(img.height, img.width, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
+    fftProp.amPh = imsup.MultAmPhMatrices(fft.amPh, ctf.amPh)
 
-    imgProp = ccc.IFFT(fftProp)
+    imgProp = cc.IFFT(fftProp)
     imgProp.ReIm2AmPh()
     imgProp.defocus = img.defocus + ctf.defocus
     return imgProp
@@ -106,11 +106,11 @@ def PerformIWFR(images, N):
 
     # start IWFR procedure
 
-    exitWave = cimsup.Image(imgHeight, imgWidth, cimsup.Image.cmp['CRI'], cimsup.Image.mem['GPU'])
+    exitWave = imsup.Image(imgHeight, imgWidth, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
 
     for i in range(0, N):
         print('Iteration no {0}...'.format(i+1))
-        cimsup.ClearImageData(exitWave)
+        imsup.ClearImageData(exitWave)
 
         # backpropagation (to in-focus plane)
 
@@ -118,14 +118,14 @@ def PerformIWFR(images, N):
             img = PropagateWave(img, backCTFunctions[idx])
             # img = PropagateToFocus(img)
             img.AmPh2ReIm()
-            exitWave.reIm = carr.AddTwoArrays(exitWave.reIm, img.reIm)
+            exitWave.reIm = arr.AddTwoArrays(exitWave.reIm, img.reIm)
 
-        exitWave.reIm = carr.MultArrayByScalar(exitWave.reIm, 1/len(images))
+        exitWave.reIm = arr.MultArrayByScalar(exitWave.reIm, 1/len(images))
 
         ewfAmPath = ewfResultsDir + ewfAmName + str(i+1) + '.png'
         ewfPhPath = ewfAmPath.replace(ewfAmName, ewfPhName)
-        cimsup.SaveAmpImage(exitWave, ewfAmPath)
-        cimsup.SavePhaseImage(exitWave, ewfPhPath)
+        imsup.SaveAmpImage(exitWave, ewfAmPath)
+        imsup.SavePhaseImage(exitWave, ewfPhPath)
 
         # forward propagation (to the original focus plane)
 

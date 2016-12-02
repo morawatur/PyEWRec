@@ -3,9 +3,9 @@ from accelerate.cuda import fft as cufft
 from numba import cuda
 
 import CudaConfig as ccfg
-import ImageSupport as cimsup
-import Array as carr
-import Propagation as cprop
+import ImageSupport as imsup
+import Array as arr
+import Propagation as prop
 
 #-------------------------------------------------------------------
 
@@ -14,7 +14,7 @@ def FFT(img):
     dt = img.cmpRepr
     img.MoveToGPU()
     img.AmPh2ReIm()
-    fft = cimsup.Image(img.height, img.width, cimsup.Image.cmp['CRI'], cimsup.Image.mem['GPU'])
+    fft = imsup.Image(img.height, img.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
     cufft.fft(img.reIm, fft.reIm)
     img.ChangeComplexRepr(dt)
     img.ChangeMemoryType(mt)
@@ -27,7 +27,7 @@ def IFFT(fft):
     dt = fft.cmpRepr
     fft.MoveToGPU()
     fft.AmPh2ReIm()
-    ifft = cimsup.Image(fft.height, fft.width, cimsup.Image.cmp['CRI'], cimsup.Image.mem['GPU'])
+    ifft = imsup.Image(fft.height, fft.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
     cufft.ifft(fft.reIm, ifft.reIm)
     fft.ChangeComplexRepr(dt)
     fft.ChangeMemoryType(mt)
@@ -40,7 +40,7 @@ def FFT2Diff(fft):
     dt = fft.cmpRepr
     fft.MoveToGPU()
     fft.AmPh2ReIm()
-    diff = cimsup.Image(fft.height, fft.width, cimsup.Image.cmp['CRI'], cimsup.Image.mem['GPU'])
+    diff = imsup.Image(fft.height, fft.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
     blockDim, gridDim = ccfg.DetermineCudaConfig(fft.width)
     FFT2Diff_dev[gridDim, blockDim](fft.reIm, diff.reIm, fft.width)
     diff.defocus = fft.defocus
@@ -71,10 +71,10 @@ def CalcCrossCorrFun(img1, img2):
     fft1.ReIm2AmPh()
     fft2.ReIm2AmPh()
 
-    fft3 = cimsup.Image(fft1.height, fft1.width, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
-    fft1.amPh = cimsup.ConjugateAmPhMatrix(fft1.amPh)
-    fft3.amPh = cimsup.MultAmPhMatrices(fft1.amPh, fft2.amPh)
-    fft3.amPh.am = carr.CalcSqrtOfArray(fft3.amPh.am)			# mcf ON
+    fft3 = imsup.Image(fft1.height, fft1.width, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
+    fft1.amPh = imsup.ConjugateAmPhMatrix(fft1.amPh)
+    fft3.amPh = imsup.MultAmPhMatrices(fft1.amPh, fft2.amPh)
+    fft3.amPh.am = arr.CalcSqrtOfArray(fft3.amPh.am)			# mcf ON
 
     # ---- ccf ----
     # fft3.amPh.am = fft1.amPh.am * fft2.amPh.am
@@ -98,17 +98,17 @@ def CalcAverageCrossCorrFun(img1, img2, nDiv):
     # mozna to wszystko urownoleglic (tak jak w CreateFragment())
     for y in range(0, nDiv):
         for x in range(0, nDiv):
-            frag1 = cimsup.CropImageROI(img1, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+            frag1 = imsup.CropImageROI(img1, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
             fragsToCorrelate1.append(frag1)
 
-            frag2 = cimsup.CropImageROI(img2, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+            frag2 = imsup.CropImageROI(img2, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
             fragsToCorrelate2.append(frag2)
 
-    ccfAvg = cimsup.Image(roiNR, roiNC, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
+    ccfAvg = imsup.Image(roiNR, roiNC, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
 
     for frag1, frag2 in zip(fragsToCorrelate1, fragsToCorrelate2):
         ccf = CalcCrossCorrFun(frag1, frag2)
-        ccfAvg.amPh.am = carr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
+        ccfAvg.amPh.am = arr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
 
     return ccfAvg
 
@@ -143,11 +143,11 @@ def FindMaxInImage(img):
 
 # @cuda.jit()
 @cuda.jit('void(float32[:, :], float32[:, :])')
-def ReduceArrayToFindMax_dev(arr, arrRed):
+def ReduceArrayToFindMax_dev(arrInp, arrRed):
     x, y = cuda.grid(2)
     if x >= arrRed.shape[0] or y >= arrRed.shape[1]:
         return
-    arrRed[x, y] = max(arr[2*x, 2*y], max(arr[2*x, 2*y+1], max(arr[2*x+1, 2*y], arr[2*x+1, 2*y+1])))
+    arrRed[x, y] = max(arrInp[2*x, 2*y], max(arrInp[2*x, 2*y+1], max(arrInp[2*x+1, 2*y], arrInp[2*x+1, 2*y+1])))
 
 # -------------------------------------------------------------------
 
@@ -173,11 +173,11 @@ def FindMinInImage(img):
 
 # @cuda.jit()
 @cuda.jit('void(float32[:, :], float32[:, :])')
-def ReduceArrayToFindMin_dev(arr, arrRed):
+def ReduceArrayToFindMin_dev(arrInp, arrRed):
     x, y = cuda.grid(2)
     if x >= arrRed.shape[0] or y >= arrRed.shape[1]:
         return
-    arrRed[x, y] = min(arr[2*x, 2*y], min(arr[2*x, 2*y+1], min(arr[2*x+1, 2*y], arr[2*x+1, 2*y+1])))
+    arrRed[x, y] = min(arrInp[2*x, 2*y], min(arrInp[2*x, 2*y+1], min(arrInp[2*x+1, 2*y], arrInp[2*x+1, 2*y+1])))
 
 # -------------------------------------------------------------------
 
@@ -188,7 +188,7 @@ def MaximizeMCF(img1, img2, dfStep0):
     dfStepMin = dfStep0 - dfStepHalfRange 	# 1.2 um
     dfStepMax = dfStep0 + dfStepHalfRange  	# 10.8 um
     dfStepChange = 0.01 * abs(dfStep0)  	# 0.06 um
-    return MaximizeMCFCore(img1, img2, 1, dfStepMin, dfStepMax, dfStepChange)
+    return MaximizeMCFCore(img1, img2, 1, [(0, 0)], dfStepMin, dfStepMax, dfStepChange)
 
 # -------------------------------------------------------------------
 
@@ -197,7 +197,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
     dfStepMin, dfStepMax, dfStepChange = np.array([dfStepMin, dfStepMax, dfStepChange]) * 1e-6
     mcfMax = 0.0
     dfStepBest = img2.defocus - img1.defocus
-    mcfBest = cimsup.Image(img1.height, img1.width, cimsup.Image.cmp['CRI'], cimsup.Image.mem['GPU'])
+    mcfBest = imsup.Image(img1.height, img1.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
     mcfBest.defocus = dfStepBest
 
     # mcfMaxDir = 'results/mcfmax/'
@@ -205,10 +205,10 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
     # mcfMaxFile = open(mcfMaxPath, 'w')
 
     for dfStep in frange(dfStepMin, dfStepMax, dfStepChange):
-        ctf = cprop.CalcTransferFunction(img1.width, img1.pxWidth, dfStep)
+        ctf = prop.CalcTransferFunction(img1.width, img1.pxWidth, dfStep)
         # ctf.AmPh2ReIm()
         # ctf = Diff2FFT(ctf)
-        img1Prop = cprop.PropagateWave(img1, ctf)
+        img1Prop = prop.PropagateWave(img1, ctf)
         # mcf = CalcCrossCorrFun(img1Prop, img2)
         # mcf = CalcPartialCrossCorrFun(img1, img2, nDiv, fragCoords)
         mcf = CalcPartialCrossCorrFun(img1Prop, img2, nDiv, fragCoords)
@@ -248,7 +248,7 @@ def GetShift(ccf):
 def ShiftImage(img, shift):
     dt = img.cmpRepr
     img.AmPh2ReIm()
-    imgShifted = cimsup.Image(img.height, img.width, img.cmpRepr, cimsup.Image.mem['GPU'])
+    imgShifted = imsup.Image(img.height, img.width, img.cmpRepr, imsup.Image.mem['GPU'])
     shift_d = cuda.to_device(np.array(shift))
     blockDim, gridDim = ccfg.DetermineCudaConfigNew(img.reIm.shape)
     ShiftImage_dev[gridDim, blockDim](img.reIm, imgShifted.reIm, shift_d, 0.0)
@@ -271,7 +271,7 @@ def ShiftImageAmpBuffer(img, shift):
     img.shift = [x + dx for x, dx in zip(img.shift, shift)]
     fillValue = np.max(img.amPh.am)
     img.MoveToGPU()
-    imgShifted = cimsup.Image(img.height, img.width, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
+    imgShifted = imsup.Image(img.height, img.width, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
     shift_d = cuda.to_device(np.array(img.shift))
     blockDim, gridDim = ccfg.DetermineCudaConfigNew(img.buffer.shape)
     ShiftImage_dev[gridDim, blockDim](img.amPh.am, imgShifted.amPh.am, shift_d, fillValue)
@@ -312,17 +312,17 @@ def CalcPartialCrossCorrFun(img1, img2, nDiv, fragCoords):
     fragsToCorrelate2 = []
 
     for x, y in fragCoords:
-        frag1 = cimsup.CropImageROI(img1, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+        frag1 = imsup.CropImageROI(img1, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
         fragsToCorrelate1.append(frag1)
 
-        frag2 = cimsup.CropImageROI(img2, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+        frag2 = imsup.CropImageROI(img2, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
         fragsToCorrelate2.append(frag2)
 
-    ccfAvg = cimsup.Image(roiNR, roiNC, cimsup.Image.cmp['CAP'], cimsup.Image.mem['GPU'])
+    ccfAvg = imsup.Image(roiNR, roiNC, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
 
     for frag1, frag2 in zip(fragsToCorrelate1, fragsToCorrelate2):
         ccf = CalcCrossCorrFun(frag1, frag2)
-        ccfAvg.amPh.am = carr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
+        ccfAvg.amPh.am = arr.AddTwoArrays(ccfAvg.amPh.am, ccf.amPh.am)
 
     return ccfAvg
 
