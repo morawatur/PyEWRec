@@ -1,11 +1,13 @@
 import math
 import re
 import sys
+from os import path
 from functools import partial
 
 import numpy as np
 from PyQt4 import QtGui
 
+import Dm3Reader3 as dm3
 import Constants as const
 import CrossCorr as cc
 import ImageSupport as imsup
@@ -314,7 +316,7 @@ class CrossCorrWidget(QtGui.QWidget):
     def correlateWithSim(self):
         fragCoords = self.getFragCoords()
         exitWave = self.parent().parent().getIwfrWidgetRef().exitWave
-        imageSim = simulateImageForDefocus(exitWave, self.btnGrid.image.defocus)
+        imageSim = SimulateImageForDefocus(exitWave, self.btnGrid.image.defocus)
         roiCoords = imsup.DetermineEqualCropCoords(self.btnGrid.image.width, imageSim.width)
         roiImage = imsup.CropImageROICoords(self.btnGrid.image, roiCoords)
         self.btnGrid.image = imsup.CreateImageWithBufferFromImage(roiImage)
@@ -479,11 +481,13 @@ class IwfrWidget(QtGui.QWidget):
 # --------------------------------------------------------
 
 class EwrWindow(QtGui.QMainWindow):
-    def __init__(self, image, gridDim):
+    def __init__(self, gridDim):
         super(EwrWindow, self).__init__(None)
         self.centralWidget = QtGui.QWidget(self)
-        self.ccWidget = CrossCorrWidget(image, gridDim, self)
-        self.iwfrWidget = IwfrWidget(image, self)
+        imagePath = QtGui.QFileDialog.getOpenFileName()
+        firstImage = LoadImageSeriesFromFirstFile(imagePath)
+        self.ccWidget = CrossCorrWidget(firstImage, gridDim, self)
+        self.iwfrWidget = IwfrWidget(firstImage, self)
         self.initUI()
 
     def initUI(self):
@@ -509,7 +513,28 @@ class EwrWindow(QtGui.QMainWindow):
 
 # --------------------------------------------------------
 
-def simulateImageForDefocus(exitWave, dfProp):
+def LoadImageSeriesFromFirstFile(imgPath):
+    imgList = imsup.ImageList()
+    imgNumText = re.search('([0-9]+)', imgPath)
+    imgNum = int(imgNumText.group(1))
+
+    while path.isfile(imgPath):
+        print('Reading file "' + imgPath + '"')
+        imgData = dm3.ReadDm3File(imgPath)
+        imgMatrix = imsup.PrepareImageMatrix(imgData, const.dimSize)
+        img = imsup.ImageWithBuffer(const.dimSize, const.dimSize, imsup.Image.cmp['CAP'], imsup.Image.mem['CPU'])
+        img.LoadAmpData(np.sqrt(imgMatrix).astype(np.float32))
+        img.numInSeries = imgNum
+        imgList.append(img)
+        imgNum += 1
+        imgPath = imgPath.replace(str(imgNum-1), str(imgNum), 1)
+
+    imgList.UpdateLinks()
+    return imgList[0]
+
+# --------------------------------------------------------
+
+def SimulateImageForDefocus(exitWave, dfProp):
     imageSim = prop.PropagateBackToDefocus(exitWave, dfProp)
     imageSim = imsup.CreateImageWithBufferFromImage(imageSim)
     imageSim.UpdateBuffer()
@@ -518,9 +543,9 @@ def simulateImageForDefocus(exitWave, dfProp):
 
 # --------------------------------------------------------
 
-def RunEwrWindow(image, gridDim):
+def RunEwrWindow(gridDim):
     app = QtGui.QApplication(sys.argv)
-    ccWindow = EwrWindow(image, gridDim)
+    ccWindow = EwrWindow(gridDim)
     sys.exit(app.exec_())
 
 # do zrobienia:
