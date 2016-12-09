@@ -515,8 +515,9 @@ class EwrWindow(QtGui.QMainWindow):
 
 def LoadImageSeriesFromFirstFile(imgPath):
     imgList = imsup.ImageList()
-    imgNumText = re.search('([0-9]+)', imgPath)
-    imgNum = int(imgNumText.group(1))
+    imgNumMatch = re.search('([0-9]+).dm3', imgPath)
+    imgNumText = imgNumMatch.group(1)
+    imgNum = int(imgNumText)
 
     while path.isfile(imgPath):
         print('Reading file "' + imgPath + '"')
@@ -526,8 +527,13 @@ def LoadImageSeriesFromFirstFile(imgPath):
         img.LoadAmpData(np.sqrt(imgMatrix).astype(np.float32))
         img.numInSeries = imgNum
         imgList.append(img)
+
         imgNum += 1
-        imgPath = imgPath.replace(str(imgNum-1), str(imgNum), 1)
+        imgNumTextNew = imgNumText.replace(str(imgNum-1), str(imgNum))
+        if imgNum == 10:
+            imgNumTextNew = imgNumTextNew[1:]
+        imgPath = RReplace(imgPath, imgNumText, imgNumTextNew, 1)
+        imgNumText = imgNumTextNew
 
     imgList.UpdateLinks()
     return imgList[0]
@@ -540,6 +546,12 @@ def SimulateImageForDefocus(exitWave, dfProp):
     imageSim.UpdateBuffer()
     imageSim.MoveToCPU()
     return imageSim
+
+# --------------------------------------------------------
+
+def RReplace(text, old, new, occurence):
+    rest = text.rsplit(old, occurence)
+    return new.join(rest)
 
 # --------------------------------------------------------
 
