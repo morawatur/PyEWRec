@@ -127,6 +127,7 @@ class ButtonGridOnLabel(QtGui.QLabel):
     def resetImage(self):
         self.image.UpdateBuffer()
         self.image.shift = [0, 0]
+        self.image.defocus = 0.0
         self.createPixmap()
         self.parent().parent().parent().statusBar().showMessage('Image no {0} was reset'.format(self.image.numInSeries))
 
