@@ -199,11 +199,14 @@ class CrossCorrWidget(QtGui.QWidget):
         correlateWithPrevButton.clicked.connect(self.correlateAll)
         correlateWithSimButton = QtGui.QPushButton('Corr. with sim.')
         correlateWithSimButton.clicked.connect(self.correlateWithSim)
+        setDefocusButton = QtGui.QPushButton('Set defocus')
+        setDefocusButton.clicked.connect(self.setDefocus)
 
         vbox_corr = QtGui.QVBoxLayout()
         vbox_corr.addWidget(self.corrAllAtOnceRadioButton)
         vbox_corr.addWidget(correlateWithPrevButton)
         vbox_corr.addWidget(correlateWithSimButton)
+        vbox_corr.addWidget(setDefocusButton)
 
         self.shiftStepEdit = QtGui.QLineEdit('5', self)
         self.shiftStepEdit.setFixedWidth(20)
@@ -337,6 +340,11 @@ class CrossCorrWidget(QtGui.QWidget):
         self.btnGrid.createPixmap()
         ccfPath = const.ccfResultsDir + const.ccfName + str(image.numInSeries) + '.png'
         imsup.SaveAmpImage(mcfBest, ccfPath)
+
+    def setDefocus(self):
+        df = float(self.dfMinEdit.input.text()) * 1e-6
+        self.btnGrid.image.defocus = df
+        self.defocusLabel.setText('df = {0:.1e} um'.format(df))
 
     def accessLabels(self):
         return self.imgNumLabel, self.defocusLabel
