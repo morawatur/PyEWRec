@@ -7,4 +7,3 @@ dev = cuda.get_current_device()
 print('CUDA device in use: ' + dev.name.decode())
 
 gui.RunEwrWindow(const.gridDim)
-print("Slawek")
