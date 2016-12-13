@@ -562,17 +562,18 @@ def PadImageBufferToNx512(img, padValue):
     dimFactor = 512
     pHeight = np.ceil(img.height / dimFactor) * dimFactor
     pWidth = np.ceil(img.width / dimFactor) * dimFactor
-    padding = (pHeight - img.height) // 2
+    ltPadding = (pHeight - img.height) // 2
+    rbPadding = ltPadding if not img.height % 2 else ltPadding + 1
     mt = img.memType
     img.ReIm2AmPh()
     img.MoveToCPU()
 
     imgPadded = ImageWithBuffer(pHeight, pWidth, img.cmpRepr, img.memType, img.defocus, img.numInSeries)
-    imgPadded.buffer[padding:pHeight-padding, padding:pWidth-padding] = img.buffer
-    imgPadded.buffer[0:padding, :] = padValue
-    imgPadded.buffer[pHeight-padding:pHeight, :] = padValue
-    imgPadded.buffer[:, 0:padding] = padValue
-    imgPadded.buffer[:, pWidth-padding:pWidth] = padValue
+    imgPadded.buffer[ltPadding:pHeight-rbPadding, ltPadding:pWidth-rbPadding] = img.buffer
+    imgPadded.buffer[0:ltPadding, :] = padValue
+    imgPadded.buffer[pHeight-rbPadding:pHeight, :] = padValue
+    imgPadded.buffer[:, 0:ltPadding] = padValue
+    imgPadded.buffer[:, pWidth-rbPadding:pWidth] = padValue
 
     img.ChangeMemoryType(mt)
     return imgPadded
