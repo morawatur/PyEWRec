@@ -118,7 +118,9 @@ class ButtonGridOnLabel(QtGui.QLabel):
         for img in imgList:
             self.applyChangesToImage(img)
 
-        cc.DetermineAbsoluteDefocus(imgList, const.idxInFocus)
+        numInFocusEdit = self.parent().parent().parent().getIwfrWidgetRef().accessInputs()
+        idxInFocus = int(numInFocusEdit.input.text()) - 1
+        cc.DetermineAbsoluteDefocus(imgList, idxInFocus)
         self.createPixmap()
         # super() instead of parent()?
         self.parent().parent().parent().statusBar().showMessage('All changes applied'.format(self.image.numInSeries))
@@ -342,9 +344,9 @@ class CrossCorrWidget(QtGui.QWidget):
         imsup.SaveAmpImage(mcfBest, ccfPath)
 
     def setDefocus(self):
-        df = float(self.dfMinEdit.input.text()) * 1e-6
-        self.btnGrid.image.defocus = df
-        self.defocusLabel.setText('df = {0:.1e} um'.format(df))
+        dfum = float(self.dfMinEdit.input.text())
+        self.btnGrid.image.defocus = dfum * 1e-6
+        self.defocusLabel.setText('df = {0:.1e} um'.format(dfum))
 
     def accessLabels(self):
         return self.imgNumLabel, self.defocusLabel
@@ -486,6 +488,9 @@ class IwfrWidget(QtGui.QWidget):
         self.imageSim.MoveToCPU()
         self.amplitudeRadioButton.setChecked(True)
         self.createPixmap()
+
+    def accessInputs(self):
+        return self.numInFocusEdit
 
 # --------------------------------------------------------
 
