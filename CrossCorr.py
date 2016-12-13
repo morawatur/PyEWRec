@@ -2,6 +2,7 @@ import numpy as np
 from accelerate.cuda import fft as cufft
 from numba import cuda
 
+import Constants as const
 import CudaConfig as ccfg
 import ImageSupport as imsup
 import ArraySupport as arrsup
@@ -200,9 +201,8 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
     mcfBest = imsup.Image(img1.height, img1.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
     mcfBest.defocus = dfStepBest
 
-    # mcfMaxDir = 'results/mcfmax/'
-    # mcfMaxPath = mcfMaxDir + 'mcf_max' + str(img2.numInSeries) + '.txt'
-    # mcfMaxFile = open(mcfMaxPath, 'w')
+    mcfMaxPath = const.ccfMaxDir + const.ccfMaxName + str(img2.numInSeries) + '.txt'
+    mcfMaxFile = open(mcfMaxPath, 'w')
 
     for dfStep in frange(dfStepMin, dfStepMax, dfStepChange):
         ctf = prop.CalcTransferFunction(img1.width, img1.pxWidth, dfStep)
@@ -216,7 +216,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
         # mcf.MoveToCPU()
         # mcfMaxCurr = np.max(mcf.amPh.am)
         # mcf.MoveToGPU()
-        # mcfMaxFile.write('{0:.3f}\t{1:.3f}\n'.format(dfStep * 1e6, mcfMaxCurr))
+        mcfMaxFile.write('{0:.3f}\t{1:.3f}\n'.format(dfStep * 1e6, mcfMaxCurr))
         if mcfMaxCurr >= mcfMax:
             mcfMax = mcfMaxCurr
             dfStepBest = dfStep
