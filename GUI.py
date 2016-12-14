@@ -111,16 +111,11 @@ class ButtonGridOnLabel(QtGui.QLabel):
         # while tmpPrev.prev is not None:
         #     tmpPrev = tmpPrev.prev
         #     self.applyChangesToImage(tmpPrev)
-        first = self.image
-        while first.prev is not None:
-            first = first.prev
+        first = imsup.GetFirstImage(self.image)
         imgList = imsup.CreateImageListFromFirstImage(first)
         for img in imgList:
             self.applyChangesToImage(img)
 
-        numInFocusEdit = self.parent().parent().parent().getIwfrWidgetRef().accessInputs()
-        idxInFocus = int(numInFocusEdit.input.text()) - 1
-        cc.DetermineAbsoluteDefocus(imgList, idxInFocus)
         self.createPixmap()
         # super() instead of parent()?
         self.parent().parent().parent().statusBar().showMessage('All changes applied'.format(self.image.numInSeries))
@@ -463,6 +458,12 @@ class IwfrWidget(QtGui.QWidget):
             self.createPixmap()
 
     def runEwr(self):
+        currentImage = self.parent().parent().getCcWidgetRef().btnGrid.image
+        firstImage = imsup.GetFirstImage(currentImage)
+        imgList = imsup.CreateImageListFromFirstImage(firstImage)
+        idxInFocus = int(self.numInFocusEdit.input.text()) - 1
+        cc.DetermineAbsoluteDefocus(imgList, idxInFocus)
+
         squareCoords = imsup.MakeSquareCoords(self.parent().parent().getCcWidgetRef().commonCoords)
         print(squareCoords)
         imgListAll = imsup.CreateImageListFromFirstImage(self.imageSim)
@@ -575,6 +576,8 @@ def RunEwrWindow(gridDim):
     sys.exit(app.exec_())
 
 # do zrobienia:
+# zmienna image powinna byc atrybutem klasy EwrWindow; w ten sposob oba widgety mialyby do niego rowny dostep (?)
+
 # mozliwosc zoomowania wynikow
 # polaczenie korelacji z rekonstrukcja
 # po kazdym etapie rekonstrukcji/korelacji zapisywanie pliku log na temat danego etapu
