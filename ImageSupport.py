@@ -538,6 +538,14 @@ def CreateImageWithBufferFromImage(img):
 
 #-------------------------------------------------------------------
 
+def GetFirstImage(img):
+    first = img
+    while first.prev is not None:
+        first = first.prev
+    return first
+
+#-------------------------------------------------------------------
+
 def CreateImageListFromFirstImage(img):
     imgList = ImageList()
     imgList.append(img)
