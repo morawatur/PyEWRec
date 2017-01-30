@@ -582,3 +582,7 @@ def RunEwrWindow(gridDim):
 # polaczenie korelacji z rekonstrukcja
 # po kazdym etapie rekonstrukcji/korelacji zapisywanie pliku log na temat danego etapu
 # (liczba obrazow, in_focus, wielkosci obrazow itd.)
+
+# problem zauwazony 30.01.2017:
+# jezeli numer pierwszego obrazu do rekonstrukcji jest > 1, to cos zlego dzieje sie z wyznaczaniem defocusow zsunietych obrazow
+# (przyklad: df1 = -12, df2 = -6, df3 = -2, df4 = 0, df5 = 0, ...)
