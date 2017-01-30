@@ -1,6 +1,6 @@
 serName = 'd'
 nFiles = 20
-dimSize = 1024
+dimSize = 2048
 numInFocus = 10
 idxInFocus = numInFocus - 1
 refIdx = 10
