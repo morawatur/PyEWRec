@@ -322,7 +322,8 @@ def CropImageROICoords(img, coords):
     CropImageROICoords_dev[gridDim, blockDim](img.reIm, roi.reIm, topLeft_d)
     img.ChangeComplexRepr(dt)
     roi.ChangeComplexRepr(dt)
-    roi.defocus = img.defocus  # !!!
+    roi.defocus = img.defocus           # !!!
+    roi.numInSeries = img.numInSeries   # !!!
     return roi
 
 # -------------------------------------------------------------------
@@ -522,6 +523,8 @@ def CopyImage(img):
     img.AmPh2ReIm()
     imgCopy = ImageWithBuffer(img.height, img.width, img.cmpRepr, img.memType, img.defocus, img.numInSeries)
     imgCopy.reIm.copy_to_device(img.reIm)
+    # imgCopy.ReIm2AmPh()         # !!!
+    # imgCopy.UpdateBuffer()      # !!!
     img.ChangeComplexRepr(dt)
     img.ChangeMemoryType(mt)
     imgCopy.ChangeComplexRepr(dt)

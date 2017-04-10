@@ -12,6 +12,7 @@ import Constants as const
 import CrossCorr as cc
 import ImageSupport as imsup
 import Propagation as prop
+import Unwarp as uw
 
 # --------------------------------------------------------
 
@@ -475,9 +476,10 @@ class IwfrWidget(QtGui.QWidget):
             imgListToEWR[idx] = imsup.CropImageROICoords(img, squareCoords)
             cropPath = const.cropResultsDir + const.cropName + str(idx + 1) + '.png'
             imsup.SaveAmpImage(imgListToEWR[idx], cropPath)
+        # imgListToEWR = uw.UnwarpImageList(imgListToEWR, const.nDivForUnwarp)      # unwarp off
         exitWave = prop.PerformIWFR(imgListToEWR, int(self.numOfItersEdit.input.text()))
         self.exitWave = imsup.CreateImageWithBufferFromImage(exitWave)
-        self.imageSim = imsup.CreateImageWithBufferFromImage(self.exitWave)    # copy self.exitWave to self.imageSim
+        self.imageSim = imsup.CreateImageWithBufferFromImage(self.exitWave)         # copy self.exitWave to self.imageSim
         self.imageSim.MoveToCPU()
         self.createPixmap()
 

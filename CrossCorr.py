@@ -328,6 +328,29 @@ def CalcPartialCrossCorrFun(img1, img2, nDiv, fragCoords):
 
 # -------------------------------------------------------------------
 
+def CalcPartialCrossCorrFunUW(img1, img2, nDiv, fragCoords):
+    roiNR, roiNC = img1.height // nDiv, img1.width // nDiv
+    fragsToCorrelate1 = []
+    fragsToCorrelate2 = []
+
+    for x, y in fragCoords:
+        frag1 = imsup.CropImageROI(img1, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+        fragsToCorrelate1.append(frag1)
+
+        frag2 = imsup.CropImageROI(img2, (y * roiNR, x * roiNC), (roiNR, roiNC), 1)
+        fragsToCorrelate2.append(frag2)
+
+    shifts = []
+    for frag1, frag2 in zip(fragsToCorrelate1, fragsToCorrelate2):
+        ccf = CalcCrossCorrFun(frag1, frag2)
+        shift = GetShift(ccf)
+        shifts.append([shift[1], shift[0]])
+
+    shifts2dArray = np.array(shifts)
+    return shifts2dArray
+
+# -------------------------------------------------------------------
+
 def DetermineAbsoluteDefocus(imgList, idxInFocus):
     # images in imgList have relative defocus values assigned
     dfSteps = [ img.defocus for img in imgList[1:] ]
