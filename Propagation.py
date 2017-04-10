@@ -1,6 +1,5 @@
 import numpy as np
 from numba import cuda
-import math
 import Constants as const
 import CudaConfig as ccfg
 import ArraySupport as arrsup
@@ -63,6 +62,7 @@ def PropagateWave(img, ctf):
     imgProp = cc.IFFT(fftProp)
     imgProp.ReIm2AmPh()
     imgProp.defocus = img.defocus + ctf.defocus
+    # print('{0}: {1:.2f}, {2:.2f}, {3:.2f}'.format(img.numInSeries, img.defocus * 1e9, ctf.defocus * 1e9, imgProp.defocus * 1e9))
     return imgProp
 
 # -------------------------------------------------------------------
@@ -85,24 +85,24 @@ def PerformIWFR(images, N):
     ewfResultsDir = 'results/ewf/'
     ewfAmName = 'am'
     ewfPhName = 'ph'
-    backCTFunctions = []
-    forwCTFunctions = []
+    # backCTFunctions = []
+    # forwCTFunctions = []
 
     print('Starting IWFR...')
 
     # storing contrast transfer functions
 
-    for img in images:
-        # print(imgWidth, img.pxWidth, -img.defocus)
-        ctf = CalcTransferFunction(imgWidth, img.pxWidth, -img.defocus)
-        ctf.AmPh2ReIm()
-        # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
-        backCTFunctions.append(ctf)
-
-        ctf = CalcTransferFunction(imgWidth, img.pxWidth, img.defocus)
-        ctf.AmPh2ReIm()
-        # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
-        forwCTFunctions.append(ctf)
+    # for img in images:
+    #     # print(imgWidth, img.pxWidth, -img.defocus)
+    #     ctf = CalcTransferFunction(imgWidth, img.pxWidth, -img.defocus)
+    #     ctf.AmPh2ReIm()
+    #     # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
+    #     backCTFunctions.append(ctf)
+    #
+    #     ctf = CalcTransferFunction(imgWidth, img.pxWidth, img.defocus)
+    #     ctf.AmPh2ReIm()
+    #     # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
+    #     forwCTFunctions.append(ctf)
 
     # start IWFR procedure
 
@@ -113,10 +113,11 @@ def PerformIWFR(images, N):
         imsup.ClearImageData(exitWave)
 
         # backpropagation (to in-focus plane)
+        ccfg.GetGPUTakenMemory()    # !!!
 
         for img, idx in zip(images, range(0, len(images))):
-            img = PropagateWave(img, backCTFunctions[idx])
-            # img = PropagateToFocus(img)
+            # img = PropagateWave(img, backCTFunctions[idx])    # faster, but takes more memory
+            img = PropagateToFocus(img)                         # slower, but takes less memory
             img.AmPh2ReIm()
             exitWave.reIm = arrsup.AddTwoArrays(exitWave.reIm, img.reIm)
 
@@ -124,16 +125,66 @@ def PerformIWFR(images, N):
 
         ewfAmPath = ewfResultsDir + ewfAmName + str(i+1) + '.png'
         ewfPhPath = ewfAmPath.replace(ewfAmName, ewfPhName)
+        ewfAmplPhPath = ewfPhPath.replace(ewfPhName, ewfPhName + 'Ampl')
         imsup.SaveAmpImage(exitWave, ewfAmPath)
         imsup.SavePhaseImage(exitWave, ewfPhPath)
+        amplifExitPhase = FilterPhase(exitWave)
+        imsup.SavePhaseImage(amplifExitPhase, ewfAmplPhPath)
 
         # forward propagation (to the original focus plane)
+        ccfg.GetGPUTakenMemory()    # !!!
 
         for img, idx in zip(images, range(0, len(images))):
-            images[idx] = PropagateWave(exitWave, forwCTFunctions[idx])
-            # images[idx] = PropagateBackToDefocus(exitWave, img.defocus)
+            # images[idx] = PropagateWave(exitWave, forwCTFunctions[idx])
+            images[idx] = PropagateBackToDefocus(exitWave, img.defocus)
             images[idx].amPh.am = img.amPh.am           # restore original amplitude
 
     print('All done')
 
     return exitWave
+
+# -------------------------------------------------------------------
+
+# mozna to wszystko uproscic;
+# ale to filtrowanie (artefaktow) nie jest wlasciwie potrzebne
+def FilterImage(img, var, stdFactor=1.0):
+    if var == 'am':
+        imgFiltered = FilterAmplitude(img, stdFactor)
+    else:
+        imgFiltered = FilterPhase(img, stdFactor)
+    return imgFiltered
+
+# -------------------------------------------------------------------
+
+def FilterAmplitude(img, stdFactor=1.0):
+    mt = img.memType
+    img.MoveToCPU()
+    amplifAmpImg = imsup.CopyImage(img)
+    amplifAmpImg.ReIm2AmPh()
+    amTemp = np.copy(amplifAmpImg.amPh.am)
+    amAvg = np.average(amTemp)
+    amStd = np.std(amTemp)
+    amMin = amAvg - stdFactor * amStd
+    amMax = amAvg + stdFactor * amStd
+    amTemp2 = amTemp * (amTemp < amMax) + amMax * (amTemp > amMax)
+    amplifAmpImg.amPh.am = amTemp2 * (amTemp2 > amMin) + amMin * (amTemp2 < amMin)
+    amplifAmpImg.UpdateBuffer()     # !!!
+    img.ChangeMemoryType(mt)
+    return amplifAmpImg
+
+# -------------------------------------------------------------------
+
+def FilterPhase(img, stdFactor=1.0):
+    mt = img.memType
+    img.MoveToCPU()
+    amplifPhaseImg = imsup.CopyImage(img)
+    amplifPhaseImg.ReIm2AmPh()
+    phTemp = np.copy(amplifPhaseImg.amPh.ph)
+    phAvg = np.average(phTemp)
+    phStd = np.std(phTemp)
+    phMin = phAvg - stdFactor * phStd
+    phMax = phAvg + stdFactor * phStd
+    phTemp2 = phTemp * (phTemp < phMax) + phMax * (phTemp > phMax)
+    amplifPhaseImg.amPh.ph = phTemp2 * (phTemp2 > phMin) + phMin * (phTemp2 < phMin)
+    img.ChangeMemoryType(mt)
+    return amplifPhaseImg
