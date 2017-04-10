@@ -113,11 +113,11 @@ def PerformIWFR(images, N):
         imsup.ClearImageData(exitWave)
 
         # backpropagation (to in-focus plane)
-        ccfg.GetGPUTakenMemory()    # !!!
+        ccfg.GetGPUMemoryUsed()     # !!!
 
         for img, idx in zip(images, range(0, len(images))):
-            # img = PropagateWave(img, backCTFunctions[idx])    # faster, but takes more memory
-            img = PropagateToFocus(img)                         # slower, but takes less memory
+            # img = PropagateWave(img, backCTFunctions[idx])    # faster, but uses more memory
+            img = PropagateToFocus(img)                         # slower, but uses less memory
             img.AmPh2ReIm()
             exitWave.reIm = arrsup.AddTwoArrays(exitWave.reIm, img.reIm)
 
@@ -132,7 +132,7 @@ def PerformIWFR(images, N):
         imsup.SavePhaseImage(amplifExitPhase, ewfAmplPhPath)
 
         # forward propagation (to the original focus plane)
-        ccfg.GetGPUTakenMemory()    # !!!
+        ccfg.GetGPUMemoryUsed()     # !!!
 
         for img, idx in zip(images, range(0, len(images))):
             # images[idx] = PropagateWave(exitWave, forwCTFunctions[idx])
