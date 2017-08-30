@@ -6,16 +6,9 @@ idxInFocus = numInFocus - 1
 refIdx = 10
 predefDfStep = 2.0e-9
 nIterations = 20
-pxWidth = 10.3935e-12
-# pxWidth = 20.5144e-12
-# pxWidth = 634.331e-12
-# pxWidth = 502.377e-12
-# pxWidth = 141.918e-12
-# pxWidth = 390.772e-12
-# pxWidth = 52.8781e-12
 ewfLambda = 1.97e-12
 dfStepMin, dfStepMax, dfStepChange = 0.4, 1.2, 0.02
-ccWidgetDim = 512
+ccWidgetDim = 768
 gridDim = 3
 nDivForUnwarp = 8
 

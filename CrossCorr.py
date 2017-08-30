@@ -205,7 +205,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
     mcfMaxFile = open(mcfMaxPath, 'w')
 
     for dfStep in frange(dfStepMin, dfStepMax, dfStepChange):
-        ctf = prop.CalcTransferFunction(img1.width, img1.pxWidth, dfStep)
+        ctf = prop.CalcTransferFunction(img1.width, img1.px_dim, dfStep)
         # ctf.AmPh2ReIm()
         # ctf = Diff2FFT(ctf)
         img1Prop = prop.PropagateWave(img1, ctf)
@@ -222,7 +222,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
             dfStepBest = dfStep
             mcfBest = mcf
 
-    # mcfMaxFile.close()
+    mcfMaxFile.close()
     mcfBest.defocus = dfStepBest
     print('Best defocus step = {0:.3f} um'.format(dfStepBest * 1e6))
     return mcfBest

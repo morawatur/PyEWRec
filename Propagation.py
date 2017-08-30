@@ -62,19 +62,20 @@ def PropagateWave(img, ctf):
     imgProp = cc.IFFT(fftProp)
     imgProp.ReIm2AmPh()
     imgProp.defocus = img.defocus + ctf.defocus
+    imgProp.px_dim = img.px_dim
     # print('{0}: {1:.2f}, {2:.2f}, {3:.2f}'.format(img.numInSeries, img.defocus * 1e9, ctf.defocus * 1e9, imgProp.defocus * 1e9))
     return imgProp
 
 # -------------------------------------------------------------------
 
 def PropagateToFocus(img):
-    ctf = CalcTransferFunction(img.width, img.pxWidth, -img.defocus)
+    ctf = CalcTransferFunction(img.width, img.px_dim, -img.defocus)
     return PropagateWave(img, ctf)
 
 # -------------------------------------------------------------------
 
 def PropagateBackToDefocus(img, defocus):
-    ctf = CalcTransferFunction(img.width, img.pxWidth, defocus)
+    ctf = CalcTransferFunction(img.width, img.px_dim, defocus)
     # img.defocus = 0.0
     return PropagateWave(img, ctf)
 
@@ -93,13 +94,13 @@ def PerformIWFR(images, N):
     # storing contrast transfer functions
 
     # for img in images:
-    #     # print(imgWidth, img.pxWidth, -img.defocus)
-    #     ctf = CalcTransferFunction(imgWidth, img.pxWidth, -img.defocus)
+    #     # print(imgWidth, img.px_dim, -img.defocus)
+    #     ctf = CalcTransferFunction(imgWidth, img.px_dim, -img.defocus)
     #     ctf.AmPh2ReIm()
     #     # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
     #     backCTFunctions.append(ctf)
     #
-    #     ctf = CalcTransferFunction(imgWidth, img.pxWidth, img.defocus)
+    #     ctf = CalcTransferFunction(imgWidth, img.px_dim, img.defocus)
     #     ctf.AmPh2ReIm()
     #     # ctf.reIm = ccc.Diff2FFT(ctf.reIm)
     #     forwCTFunctions.append(ctf)

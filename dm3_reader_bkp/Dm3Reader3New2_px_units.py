@@ -90,7 +90,7 @@ def ReadDm3File(dm3_fpath):
   pixel_dims = tags_data['Scale']
   image_data = tags_data['Data']
 
-  # SaveDm3AsPng(image_data, image_dims, dm3_fpath)
+  SaveDm3AsPng(image_data, image_dims, dm3_fpath)
   print('\nAll done')
   sys.stdout = sys.__stdout__
 
@@ -268,13 +268,14 @@ def ReadTagData(dm3_file, n_elements, type_id, tag_label):
   data = struct.unpack(data_format, dm3_file.read(n_elements * type_size))
 
   if tag_label == 'RestoreImageDisplayBounds':
-    tags_data[tag_label] = [ int(dim) for dim in data[2:] ]
+    tags_data[tag_label].extend([int(dim) for dim in data[2:]])
   elif tag_label == 'Scale' and tags_data['Units'] != 'nm':
     tags_data[tag_label] = [data[0] * 1e-9] * 2
   elif tag_label == 'Units':
     tags_data[tag_label] = ''.join([chr(i) for i in data])
   elif tag_label == 'Data':
-    tags_data[tag_label] = data
+    del tags_data[tag_label][:]
+    tags_data[tag_label].extend(data)
 
 #------------------------------------------------------------------------------------
 

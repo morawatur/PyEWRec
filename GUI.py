@@ -49,7 +49,7 @@ class ButtonGridOnLabel(QtGui.QLabel):
         self.image.ReIm2AmPh()
         self.image.UpdateBuffer()
         self.createPixmap()
-        self.grid.setMargin(0)
+        self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(0)
         self.setLayout(self.grid)
         self.createGrid()
@@ -145,7 +145,7 @@ class LineEditWithLabel(QtGui.QWidget):
         self.input.setMaxLength(10)
 
         vbox = QtGui.QVBoxLayout()
-        vbox.setMargin(0)
+        vbox.setContentsMargins(0, 0, 0, 0)
         vbox.setSpacing(0)
         vbox.addWidget(self.label)
         vbox.addWidget(self.input)
@@ -501,7 +501,8 @@ class EwrWindow(QtGui.QMainWindow):
     def __init__(self, gridDim):
         super(EwrWindow, self).__init__(None)
         self.centralWidget = QtGui.QWidget(self)
-        imagePath = QtGui.QFileDialog.getOpenFileName()
+        fileDialog = QtGui.QFileDialog()
+        imagePath = fileDialog.getOpenFileName()
         firstImage = LoadImageSeriesFromFirstFile(imagePath)
         self.ccWidget = CrossCorrWidget(firstImage, gridDim, self)
         self.iwfrWidget = IwfrWidget(firstImage, self)
@@ -517,7 +518,7 @@ class EwrWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.centralWidget)
 
         self.move(300, 300)
-        self.setWindowTitle('Cross correlation window')
+        self.setWindowTitle('Exit wave reconstruction window')
         self.setWindowIcon(QtGui.QIcon('gui/world.png'))
         self.show()
         self.setFixedSize(self.width(), self.height())     # disable window resizing
@@ -538,11 +539,12 @@ def LoadImageSeriesFromFirstFile(imgPath):
 
     while path.isfile(imgPath):
         print('Reading file "' + imgPath + '"')
-        imgData = dm3.ReadDm3File(imgPath)
-        imgMatrix = imsup.PrepareImageMatrix(imgData, const.dimSize)
-        img = imsup.ImageWithBuffer(const.dimSize, const.dimSize, imsup.Image.cmp['CAP'], imsup.Image.mem['CPU'])
-        img.LoadAmpData(np.sqrt(imgMatrix).astype(np.float32))
-        img.numInSeries = imgNum
+        imgData, pxDims = dm3.ReadDm3File(imgPath)
+        imsup.Image.px_dim_default = pxDims[0]
+        imgData = np.abs(imgData)
+        img = imsup.ImageWithBuffer(imgData.shape[0], imgData.shape[1], imsup.Image.cmp['CAP'], imsup.Image.mem['CPU'],
+                                    num=imgNum, px_dim_sz=pxDims[0])
+        img.LoadAmpData(np.sqrt(imgData).astype(np.float32))
         imgList.append(img)
 
         imgNum += 1

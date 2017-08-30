@@ -7,10 +7,6 @@ type_size = { 'char': 1, 'bool': 1, 'i8': 1, 'i16': 2, 'i32': 4, 'float': 4, 'do
 # format strings for different datatypes to be used inside the struct.unpack() function
 type_format = { 'char': 'c', 'uchar': 'B', 'bool': '?', 'i16': 'h', 'ui16': 'H', 'i32': 'i', 'ui32': 'I', 'float': 'f', 'double': 'd' }
 
-# tag labels for values which we want to read (image dimensions, pixel dimensions,
-# units of pixel dimensions and image data, i.e. pixel values)
-tags_data = { 'RestoreImageDisplayBounds': [], 'Scale': [], 'Units': '', 'Data': [] }
-
 #-----------------------------------------------------------------------------------
 
 def Reverse(word):
@@ -59,7 +55,6 @@ def ReadDm3File(dm3_fpath):
 
   import sys
   import struct
-  import numpy as np
 
   sys.stdout = open(dm3_fpath.replace('.dm3', '_log.txt'), 'w')
   dm3_file = open(dm3_fpath, 'rb')
@@ -83,24 +78,19 @@ def ReadDm3File(dm3_fpath):
   print('DM version: ' + str(dm3_items['dm_version']) + '\n' \
         'File size: ' + str(dm3_items['file_size']) + ' bytes')
 
+  image_data = []
+
   main_tag_group_size = dm3_items['file_size'] - header_size
-  ReadTagGroup(dm3_file)
-
-  image_dims = tags_data['RestoreImageDisplayBounds']
-  pixel_dims = tags_data['Scale']
-  image_data = tags_data['Data']
-
-  # SaveDm3AsPng(image_data, image_dims, dm3_fpath)
+  ReadTagGroup(dm3_file, image_data)
+  #SaveDm3AsPng(image_data, dm3_fpath)
   print('\nAll done')
   sys.stdout = sys.__stdout__
 
-  image1d = np.asarray(image_data)
-  image2d = np.reshape(image1d, tuple(image_dims))
-  return image2d, pixel_dims
+  return image_data
 
 #-----------------------------------------------------------------------------------
 
-def ReadTagGroup(dm3_file):
+def ReadTagGroup(dm3_file, image_data):
   '''Reads group of dm3 tags.
   For every single tag in a group it calls ReadTag() function.
   Keyword arguments:
@@ -127,11 +117,11 @@ def ReadTagGroup(dm3_file):
   tgroup_items['is_sorted'] = struct.unpack('?', tgroup_header[5:6])[0]
 
   for tag_idx in range(0, tgroup_items['n_tags']):    # moze byc tez range(tgroup_items['n_tags'])
-    ReadTag(dm3_file)
+    ReadTag(dm3_file, image_data)
 
 #-----------------------------------------------------------------------------------
 
-def ReadTag(dm3_file):
+def ReadTag(dm3_file, image_data):
   '''Reads single tag.
   If a tag turns out to be a tag group it calls ReadTagGroup() function.
   If a tag is a single tag then it calls ReadTagType() function.
@@ -160,14 +150,18 @@ def ReadTag(dm3_file):
   print('"%s"' % (tag_items['label']))
   #print(str(tag_items['label'])[1:])
 
+  has_data = False
+  if tag_items['label'] == 'Data':
+    has_data = True
+
   if tag_items['is_group']:
-    ReadTagGroup(dm3_file)
+    ReadTagGroup(dm3_file, image_data)
   else:
-    ReadTagType(dm3_file, tag_items['label'])
+    ReadTagType(dm3_file, has_data, image_data)
 
 #-----------------------------------------------------------------------------------
 
-def ReadTagType(dm3_file, tag_label):
+def ReadTagType(dm3_file, has_data, image_data):
   '''Reads information about data structure and datatypes of individual values.
   Keyword arguments:
   dm3_file (file) -- dm3 file object
@@ -223,11 +217,11 @@ def ReadTagType(dm3_file, tag_label):
       data_size = GetTypeSize(ttype_items['info_array'][0])
 
   n_elements = data_size / GetTypeSize(type_id)
-  ReadTagData(dm3_file, n_elements, type_id, tag_label)
+  ReadTagData(dm3_file, n_elements, type_id, has_data, image_data)
 
 #-----------------------------------------------------------------------------------
 
-def ReadTagData(dm3_file, n_elements, type_id, tag_label):
+def ReadTagData(dm3_file, n_elements, type_id, has_data, image_data):
   '''Reads data based on the information about datatypes and number of elements.
   Keyword arguments:
   dm3_file (file) -- dm3 file object
@@ -267,18 +261,13 @@ def ReadTagData(dm3_file, n_elements, type_id, tag_label):
 
   data = struct.unpack(data_format, dm3_file.read(n_elements * type_size))
 
-  if tag_label == 'RestoreImageDisplayBounds':
-    tags_data[tag_label] = [ int(dim) for dim in data[2:] ]
-  elif tag_label == 'Scale' and tags_data['Units'] != 'nm':
-    tags_data[tag_label] = [data[0] * 1e-9] * 2
-  elif tag_label == 'Units':
-    tags_data[tag_label] = ''.join([chr(i) for i in data])
-  elif tag_label == 'Data':
-    tags_data[tag_label] = data
+  if has_data:
+    del image_data[:]
+    image_data.extend(data)
 
 #------------------------------------------------------------------------------------
 
-def SaveDm3AsPng(image_data, image_dims, dm3_fname):
+def SaveDm3AsPng(image_data, dm3_fname):
   '''Saves image data as png file.
   Image data is a matrix of integer values. Each value corresponds to a single greyscale pixel.
   Keyword arguments:
@@ -291,7 +280,7 @@ def SaveDm3AsPng(image_data, image_dims, dm3_fname):
   from PIL import Image as im
 
   image1d = np.asarray(image_data)
-  image2d = np.reshape(image1d, tuple(image_dims))
+  image2d = np.reshape(image1d, (-1, 1024))
 
   image2d_rescaled = ((image2d - image2d.min()) * 255.0 / image2d.max()).astype(np.uint8)
 

@@ -74,9 +74,9 @@ class Image:
     capVar = {'AM': 0, 'PH': 1}
     criVar = {'RE': 0, 'IM': 1}
     mem = {'CPU': 0, 'GPU': 1}
-    pxWidth = const.pxWidth
+    px_dim_default = 1.0
 
-    def __init__(self, height, width, cmpRepr=cmp['CAP'], memType=mem['CPU'], defocus=0.0, num=1):
+    def __init__(self, height, width, cmpRepr=cmp['CAP'], memType=mem['CPU'], defocus=0.0, num=1, px_dim_sz=-1.0):
         self.width = width
         self.height = height
         self.size = width * height
@@ -93,6 +93,9 @@ class Image:
         self.numInSeries = num
         self.prev = None
         self.next = None
+        self.px_dim = px_dim_sz
+        if px_dim_sz < 0:
+            self.px_dim = self.px_dim_default
         # ClearImageData(self)
 
     def __del__(self):
@@ -152,8 +155,8 @@ class Image:
 # -------------------------------------------------------------------
 
 class ImageWithBuffer(Image):
-    def __init__(self, height, width, cmpRepr=Image.cmp['CAP'], memType=Image.mem['CPU'], defocus=0.0, num=1):
-        super(ImageWithBuffer, self).__init__(height, width, cmpRepr, memType, defocus, num)
+    def __init__(self, height, width, cmpRepr=Image.cmp['CAP'], memType=Image.mem['CPU'], defocus=0.0, num=1, px_dim_sz=1.0):
+        super(ImageWithBuffer, self).__init__(height, width, cmpRepr, memType, defocus, num, px_dim_sz)
         self.parent = super(ImageWithBuffer, self)
         self.shift = [0, 0]
         if self.memType == self.mem['CPU']:
