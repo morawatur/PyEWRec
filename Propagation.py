@@ -8,12 +8,16 @@ import CrossCorr as cc
 
 # -------------------------------------------------------------------
 
-def CalcTransferFunction(imgDim, pxDim, defocusChange):
+def CalcTransferFunction(imgDim, pxDim, defocusChange, ap=0):
     blockDim, gridDim = ccfg.DetermineCudaConfig(imgDim)
     ctf = imsup.Image(imgDim, imgDim, imsup.Image.cmp['CAP'], imsup.Image.mem['GPU'])
     ctfCoeff = np.pi * const.ewfLambda * defocusChange
     CalcTransferFunction_dev[gridDim, blockDim](ctf.amPh.am, ctf.amPh.ph, imgDim, pxDim, ctfCoeff)
     ctf.defocus = defocusChange
+    # -----
+    if ap > 0:
+        ctf = InsertAperture(ctf, ap)
+    # -----
     return ctf
 
 # -------------------------------------------------------------------
@@ -49,6 +53,29 @@ def CalcTransferFunction_dev(ctfAm, ctfPh, imgDim, pxDim, ctfCoeff):
 
 # -------------------------------------------------------------------
 
+def InsertAperture(img, ap_radius):
+    img_dim = img.amPh.am.shape[0]
+    blockDim, gridDim = ccfg.DetermineCudaConfig(img_dim)
+    img.MoveToGPU()
+    img_with_aperature = imsup.CopyImage(img)
+    InsertAperture_dev[gridDim, blockDim](img_with_aperature.amPh.am, img_with_aperature.amPh.ph, img_dim, ap_radius)
+    return img_with_aperature
+
+# -------------------------------------------------------------------
+
+@cuda.jit('void(float32[:, :], float32[:, :], int32, int32)')
+def InsertAperture_dev(img_am, img_ph, img_dim, ap_radius):
+    x, y = cuda.grid(2)
+    if x >= img_dim or y >= img_dim:
+        return
+
+    mid = img_dim // 2
+    if (x - mid) ** 2 + (y - mid) ** 2 > ap_radius ** 2:
+        img_am[y, x] = 0.0
+        img_ph[y, x] = 0.0
+
+# -------------------------------------------------------------------
+
 def PropagateWave(img, ctf):
     fft = cc.FFT(img)
     fft.ReIm2AmPh()
@@ -69,13 +96,14 @@ def PropagateWave(img, ctf):
 # -------------------------------------------------------------------
 
 def PropagateToFocus(img):
-    ctf = CalcTransferFunction(img.width, img.px_dim, -img.defocus)
+    ctf = CalcTransferFunction(img.width, img.px_dim, -img.defocus, ap=0)
+    # print(img.numInSeries)
     return PropagateWave(img, ctf)
 
 # -------------------------------------------------------------------
 
 def PropagateBackToDefocus(img, defocus):
-    ctf = CalcTransferFunction(img.width, img.px_dim, defocus)
+    ctf = CalcTransferFunction(img.width, img.px_dim, defocus, ap=0)
     # img.defocus = 0.0
     return PropagateWave(img, ctf)
 

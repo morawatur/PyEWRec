@@ -12,6 +12,8 @@ class ComplexAmPhMatrix:
     mem = {'CPU': 0, 'GPU': 1}
 
     def __init__(self, height, width, memType=mem['CPU']):
+        height = int(height)
+        width = int(width)
         if memType == self.mem['CPU']:
             # self.am = np.empty((height, width), dtype=np.float32)
             # self.ph = np.empty((height, width), dtype=np.float32)
@@ -77,6 +79,8 @@ class Image:
     px_dim_default = 1.0
 
     def __init__(self, height, width, cmpRepr=cmp['CAP'], memType=mem['CPU'], defocus=0.0, num=1, px_dim_sz=-1.0):
+        width = int(width)
+        height = int(height)
         self.width = width
         self.height = height
         self.size = width * height
@@ -574,8 +578,8 @@ def CreateImageListFromImage(img, howMany):
 
 def PadImageBufferToNx512(img, padValue):
     dimFactor = 512
-    pHeight = np.ceil(img.height / dimFactor) * dimFactor
-    pWidth = np.ceil(img.width / dimFactor) * dimFactor
+    pHeight = int(np.ceil(img.height / dimFactor) * dimFactor)
+    pWidth = int(np.ceil(img.width / dimFactor) * dimFactor)
     ltPadding = (pHeight - img.height) // 2
     rbPadding = ltPadding if not img.height % 2 else ltPadding + 1
     mt = img.memType
