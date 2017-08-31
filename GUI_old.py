@@ -5,7 +5,7 @@ from os import path
 from functools import partial
 
 import numpy as np
-from PyQt5 import QtGui, QtWidgets
+from PyQt4 import QtGui
 
 import Dm3Reader3 as dm3
 import Constants as const
@@ -16,7 +16,7 @@ import Unwarp as uw
 
 # --------------------------------------------------------
 
-class CheckButton(QtWidgets.QPushButton):
+class CheckButton(QtGui.QPushButton):
     def __init__(self, text, width, height):
         super(CheckButton, self).__init__(text)
         self.defaultStyle = 'background-color:transparent; color:transparent; width:{0}; height:{1}; border:1px solid rgb(0, 0, 0); padding:-1px;'.format(width, height)
@@ -37,10 +37,10 @@ class CheckButton(QtWidgets.QPushButton):
 
 # --------------------------------------------------------
 
-class ButtonGridOnLabel(QtWidgets.QLabel):
+class ButtonGridOnLabel(QtGui.QLabel):
     def __init__(self, image, gridDim, parent):
         super(ButtonGridOnLabel, self).__init__(parent)
-        self.grid = QtWidgets.QGridLayout()
+        self.grid = QtGui.QGridLayout()
         self.gridDim = gridDim
         self.image = image               # scaling and other changes will be executed on image buffer (not on image itself)
         self.initUI()
@@ -131,11 +131,11 @@ class ButtonGridOnLabel(QtWidgets.QLabel):
 
 # --------------------------------------------------------
 
-class LineEditWithLabel(QtWidgets.QWidget):
+class LineEditWithLabel(QtGui.QWidget):
     def __init__(self, parent, labText='df', defaultValue=''):
         super(LineEditWithLabel, self).__init__(parent)
-        self.label = QtWidgets.QLabel(labText)
-        self.input = QtWidgets.QLineEdit(defaultValue)
+        self.label = QtGui.QLabel(labText)
+        self.input = QtGui.QLineEdit(defaultValue)
         self.initUI()
 
     def initUI(self):
@@ -144,7 +144,7 @@ class LineEditWithLabel(QtWidgets.QWidget):
         self.setFixedWidth(50)
         self.input.setMaxLength(10)
 
-        vbox = QtWidgets.QVBoxLayout()
+        vbox = QtGui.QVBoxLayout()
         vbox.setContentsMargins(0, 0, 0, 0)
         vbox.setSpacing(0)
         vbox.addWidget(self.label)
@@ -153,81 +153,81 @@ class LineEditWithLabel(QtWidgets.QWidget):
 
 # --------------------------------------------------------
 
-class CrossCorrWidget(QtWidgets.QWidget):
+class CrossCorrWidget(QtGui.QWidget):
     def __init__(self, image, gridDim, parent):
         super(CrossCorrWidget, self).__init__(parent)
-        self.imgNumLabel = QtWidgets.QLabel('no data', self)
-        self.defocusLabel = QtWidgets.QLabel('no data', self)
+        self.imgNumLabel = QtGui.QLabel('no data', self)
+        self.defocusLabel = QtGui.QLabel('no data', self)
         self.btnGrid = ButtonGridOnLabel(image, gridDim, self)
         self.commonCoords = [0, 0, image.height, image.width]
         self.initUI()
 
     def initUI(self):
-        prevButton = QtWidgets.QPushButton(QtGui.QIcon('gui/prev.png'), '', self)
+        prevButton = QtGui.QPushButton(QtGui.QIcon('gui/prev.png'), '', self)
         prevButton.clicked.connect(partial(self.btnGrid.changePixmap, False))
 
-        nextButton = QtWidgets.QPushButton(QtGui.QIcon('gui/next.png'), '', self)
+        nextButton = QtGui.QPushButton(QtGui.QIcon('gui/next.png'), '', self)
         nextButton.clicked.connect(partial(self.btnGrid.changePixmap, True))
 
-        lessButton = QtWidgets.QPushButton(QtGui.QIcon('gui/less.png'), '', self)
+        lessButton = QtGui.QPushButton(QtGui.QIcon('gui/less.png'), '', self)
         lessButton.clicked.connect(partial(self.btnGrid.changeGrid, False))
 
-        moreButton = QtWidgets.QPushButton(QtGui.QIcon('gui/more.png'), '', self)
+        moreButton = QtGui.QPushButton(QtGui.QIcon('gui/more.png'), '', self)
         moreButton.clicked.connect(partial(self.btnGrid.changeGrid, True))
 
-        hbox_tl = QtWidgets.QHBoxLayout()
+        hbox_tl = QtGui.QHBoxLayout()
         hbox_tl.addWidget(prevButton)
         hbox_tl.addWidget(nextButton)
 
-        hbox_ml = QtWidgets.QHBoxLayout()
+        hbox_ml = QtGui.QHBoxLayout()
         hbox_ml.addWidget(lessButton)
         hbox_ml.addWidget(moreButton)
 
-        vbox_switch = QtWidgets.QVBoxLayout()
+        vbox_switch = QtGui.QVBoxLayout()
         vbox_switch.addLayout(hbox_tl)
         vbox_switch.addLayout(hbox_ml)
         vbox_switch.addWidget(self.imgNumLabel)
         vbox_switch.addWidget(self.defocusLabel)
 
-        self.corrAllAtOnceRadioButton = QtWidgets.QRadioButton('Corr. all at once', self)
+        self.corrAllAtOnceRadioButton = QtGui.QRadioButton('Corr. all at once', self)
         self.corrAllAtOnceRadioButton.setChecked(False)
 
-        correlateWithPrevButton = QtWidgets.QPushButton('Corr. with prev.')
+        correlateWithPrevButton = QtGui.QPushButton('Corr. with prev.')
         # correlateWithPrevButton.clicked.connect(self.correlateWithPrev)
         correlateWithPrevButton.clicked.connect(self.correlateAll)
-        correlateWithSimButton = QtWidgets.QPushButton('Corr. with sim.')
+        correlateWithSimButton = QtGui.QPushButton('Corr. with sim.')
         correlateWithSimButton.clicked.connect(self.correlateWithSim)
-        setDefocusButton = QtWidgets.QPushButton('Set defocus')
+        setDefocusButton = QtGui.QPushButton('Set defocus')
         setDefocusButton.clicked.connect(self.setDefocus)
 
-        vbox_corr = QtWidgets.QVBoxLayout()
+        vbox_corr = QtGui.QVBoxLayout()
         vbox_corr.addWidget(self.corrAllAtOnceRadioButton)
         vbox_corr.addWidget(correlateWithPrevButton)
         vbox_corr.addWidget(correlateWithSimButton)
         vbox_corr.addWidget(setDefocusButton)
 
-        self.shiftStepEdit = QtWidgets.QLineEdit('5', self)
+        self.shiftStepEdit = QtGui.QLineEdit('5', self)
         self.shiftStepEdit.setFixedWidth(20)
         self.shiftStepEdit.setMaxLength(3)
 
-        upButton = QtWidgets.QPushButton(QtGui.QIcon('gui/up.png'), '', self)
+        upButton = QtGui.QPushButton(QtGui.QIcon('gui/up.png'), '', self)
         upButton.clicked.connect(self.movePixmapUp)
 
-        downButton = QtWidgets.QPushButton(QtGui.QIcon('gui/down.png'), '', self)
+        downButton = QtGui.QPushButton(QtGui.QIcon('gui/down.png'), '', self)
         downButton.clicked.connect(self.movePixmapDown)
 
-        leftButton = QtWidgets.QPushButton(QtGui.QIcon('gui/left.png'), '', self)
+        leftButton = QtGui.QPushButton(QtGui.QIcon('gui/left.png'), '', self)
         leftButton.clicked.connect(self.movePixmapLeft)
 
-        rightButton = QtWidgets.QPushButton(QtGui.QIcon('gui/right.png'), '', self)
+        rightButton = QtGui.QPushButton(QtGui.QIcon('gui/right.png'), '', self)
         rightButton.clicked.connect(self.movePixmapRight)
 
-        hbox_mm = QtWidgets.QHBoxLayout()
+        hbox_mm = QtGui.QHBoxLayout()
         hbox_mm.addWidget(leftButton)
         hbox_mm.addWidget(self.shiftStepEdit)
         hbox_mm.addWidget(rightButton)
 
-        vbox_move = QtWidgets.QVBoxLayout()
+        vbox_move = QtGui.QVBoxLayout()
         vbox_move.addWidget(upButton)
         vbox_move.addLayout(hbox_mm)
         vbox_move.addWidget(downButton)
@@ -236,29 +236,29 @@ class CrossCorrWidget(QtWidgets.QWidget):
         self.dfMaxEdit = LineEditWithLabel(self, labText='df max', defaultValue=str(const.dfStepMax))
         self.dfStepEdit = LineEditWithLabel(self, labText='step [um]', defaultValue=str(const.dfStepChange))
 
-        hbox_mr = QtWidgets.QHBoxLayout()
+        hbox_mr = QtGui.QHBoxLayout()
         hbox_mr.addWidget(self.dfMinEdit)
         hbox_mr.addWidget(self.dfMaxEdit)
         hbox_mr.addWidget(self.dfStepEdit)
 
-        applyChangesButton = QtWidgets.QPushButton('Apply changes', self)
+        applyChangesButton = QtGui.QPushButton('Apply changes', self)
         applyChangesButton.clicked.connect(self.btnGrid.applyChangesToAll)
 
-        resetButton = QtWidgets.QPushButton('Reset image', self)
+        resetButton = QtGui.QPushButton('Reset image', self)
         resetButton.clicked.connect(self.btnGrid.resetImage)
 
-        vbox_right = QtWidgets.QVBoxLayout()
+        vbox_right = QtGui.QVBoxLayout()
         vbox_right.addLayout(hbox_mr)
         vbox_right.addWidget(applyChangesButton)
         vbox_right.addWidget(resetButton)
 
-        hbox_main = QtWidgets.QHBoxLayout()
+        hbox_main = QtGui.QHBoxLayout()
         hbox_main.addLayout(vbox_switch)
         hbox_main.addLayout(vbox_corr)
         hbox_main.addLayout(vbox_move)
         hbox_main.addLayout(vbox_right)
 
-        vbox_main = QtWidgets.QVBoxLayout()
+        vbox_main = QtGui.QVBoxLayout()
         vbox_main.addWidget(self.btnGrid)
         vbox_main.addLayout(hbox_main)
         self.setLayout(vbox_main)
@@ -350,10 +350,10 @@ class CrossCorrWidget(QtWidgets.QWidget):
 # --------------------------------------------------------
 
 # odroznic parent() (klasa dziedziczona) od parent, czyli instancji, ktorej atrybutem jest IwfrWidget
-class IwfrWidget(QtWidgets.QWidget):
+class IwfrWidget(QtGui.QWidget):
     def __init__(self, image, parent):
         super(IwfrWidget, self).__init__(parent)
-        self.display = QtWidgets.QLabel()
+        self.display = QtGui.QLabel()
         self.imageSim = image
         self.exitWave = image
         # self.owner = parent
@@ -374,45 +374,45 @@ class IwfrWidget(QtWidgets.QWidget):
         self.numOfItersEdit.setFixedWidth(100)
         self.dfToSimEdit.setFixedWidth(100)
 
-        self.amplitudeRadioButton = QtWidgets.QRadioButton('Amplitude', self)
+        self.amplitudeRadioButton = QtGui.QRadioButton('Amplitude', self)
         self.amplitudeRadioButton.setChecked(True)
-        self.phaseRadioButton = QtWidgets.QRadioButton('Phase', self)
-        self.fftRadioButton = QtWidgets.QRadioButton('FFT', self)
+        self.phaseRadioButton = QtGui.QRadioButton('Phase', self)
+        self.fftRadioButton = QtGui.QRadioButton('FFT', self)
 
-        simulateButton = QtWidgets.QPushButton('Simulate image', self)
+        simulateButton = QtGui.QPushButton('Simulate image', self)
         simulateButton.clicked.connect(self.simulateImage)
 
-        runEwrButton = QtWidgets.QPushButton('Run EWR', self)
+        runEwrButton = QtGui.QPushButton('Run EWR', self)
         runEwrButton.clicked.connect(self.runEwr)
 
-        vbox_edit1 = QtWidgets.QVBoxLayout()
+        vbox_edit1 = QtGui.QVBoxLayout()
         vbox_edit1.addWidget(self.numOfFirstEdit)
         vbox_edit1.addWidget(self.numInFocusEdit)
 
-        vbox_edit2 = QtWidgets.QVBoxLayout()
+        vbox_edit2 = QtGui.QVBoxLayout()
         vbox_edit2.addWidget(self.numOfImagesEdit)
         vbox_edit2.addWidget(self.numOfItersEdit)
 
-        vbox_radio = QtWidgets.QVBoxLayout()
+        vbox_radio = QtGui.QVBoxLayout()
         vbox_radio.addWidget(self.amplitudeRadioButton)
         vbox_radio.addWidget(self.phaseRadioButton)
         vbox_radio.addWidget(self.fftRadioButton)
 
-        vbox_sim = QtWidgets.QVBoxLayout()
+        vbox_sim = QtGui.QVBoxLayout()
         vbox_sim.addWidget(self.dfToSimEdit)
         vbox_sim.addWidget(simulateButton)
 
-        hbox = QtWidgets.QHBoxLayout()
+        hbox = QtGui.QHBoxLayout()
         hbox.addLayout(vbox_edit1)
         hbox.addLayout(vbox_edit2)
         hbox.addLayout(vbox_radio)
         hbox.addLayout(vbox_sim)
 
-        vbox = QtWidgets.QVBoxLayout()
+        vbox = QtGui.QVBoxLayout()
         vbox.addLayout(hbox)
         vbox.addWidget(runEwrButton)
 
-        vbox_main = QtWidgets.QVBoxLayout()
+        vbox_main = QtGui.QVBoxLayout()
         vbox_main.addWidget(self.display)
         vbox_main.addLayout(vbox)
 
@@ -497,12 +497,12 @@ class IwfrWidget(QtWidgets.QWidget):
 
 # --------------------------------------------------------
 
-class EwrWindow(QtWidgets.QMainWindow):
+class EwrWindow(QtGui.QMainWindow):
     def __init__(self, gridDim):
         super(EwrWindow, self).__init__(None)
-        self.centralWidget = QtWidgets.QWidget(self)
-        fileDialog = QtWidgets.QFileDialog()
-        imagePath = fileDialog.getOpenFileName()[0]
+        self.centralWidget = QtGui.QWidget(self)
+        fileDialog = QtGui.QFileDialog()
+        imagePath = fileDialog.getOpenFileName()
         firstImage = LoadImageSeriesFromFirstFile(imagePath)
         self.ccWidget = CrossCorrWidget(firstImage, gridDim, self)
         self.iwfrWidget = IwfrWidget(firstImage, self)
@@ -511,7 +511,7 @@ class EwrWindow(QtWidgets.QMainWindow):
     def initUI(self):
         self.statusBar().showMessage('Ready')
 
-        hbox_main = QtWidgets.QHBoxLayout()
+        hbox_main = QtGui.QHBoxLayout()
         hbox_main.addWidget(self.ccWidget)
         hbox_main.addWidget(self.iwfrWidget)
         self.centralWidget.setLayout(hbox_main)
@@ -575,7 +575,7 @@ def RReplace(text, old, new, occurence):
 # --------------------------------------------------------
 
 def RunEwrWindow(gridDim):
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
     ccWindow = EwrWindow(gridDim)
     sys.exit(app.exec_())
 

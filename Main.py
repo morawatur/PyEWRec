@@ -1,7 +1,7 @@
 from numba import cuda
 import Constants as const
 import CudaConfig as ccfg
-import GUI2 as gui
+import GUI as gui
 
 cuda.select_device(0)
 dev = cuda.get_current_device()
