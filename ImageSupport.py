@@ -172,6 +172,10 @@ class ImageWithBuffer(Image):
         self.amPh.am = np.copy(ampData)
         self.buffer = np.copy(ampData)
 
+    def LoadPhaseData(self, phData):
+        self.amPh.ph = np.copy(phData)
+        self.buffer = np.copy(phData)
+
     def UpdateBuffer(self):
         if self.memType == self.mem['CPU']:
             self.buffer = np.copy(self.amPh.am)
@@ -184,6 +188,20 @@ class ImageWithBuffer(Image):
         else:
             self.amPh.am = cuda.device_array(self.buffer.shape, dtype=np.float32)
             self.amPh.am.copy_to_device(self.buffer)
+
+    # by default buffer was for amplitude data
+    def UpdateBufferFromPhase(self):
+        if self.memType == self.mem['CPU']:
+            self.buffer = np.copy(self.amPh.ph)
+        else:
+            self.buffer.copy_to_device(self.amPh.ph)
+
+    def UpdatePhaseFromBuffer(self):
+        if self.memType == self.mem['CPU']:
+            self.amPh.ph = np.copy(self.buffer)
+        else:
+            self.amPh.ph = cuda.device_array(self.buffer.shape, dtype=np.float32)
+            self.amPh.ph.copy_to_device(self.buffer)
 
     def MoveToGPU(self):
         if self.memType == self.mem['GPU']:
@@ -528,8 +546,10 @@ def CopyImage(img):
     dt = img.cmpRepr
     img.MoveToGPU()
     img.AmPh2ReIm()
-    imgCopy = ImageWithBuffer(img.height, img.width, img.cmpRepr, img.memType, img.defocus, img.numInSeries)
+    imgCopy = ImageWithBuffer(img.height, img.width, img.cmpRepr, img.memType, img.defocus, img.numInSeries, px_dim_sz=img.px_dim)
     imgCopy.reIm.copy_to_device(img.reIm)
+    if type(imgCopy) == type(img):
+        imgCopy.buffer.copy_to_device(img.buffer)
     # imgCopy.ReIm2AmPh()         # !!!
     # imgCopy.UpdateBuffer()      # !!!
     img.ChangeComplexRepr(dt)

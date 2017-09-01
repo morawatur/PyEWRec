@@ -63,7 +63,7 @@ class ButtonGridOnLabel(QtWidgets.QLabel):
         self.setPixmap(pixmap)
         imgNumLabel, defocusLabel = self.parent().accessLabels()
         imgNumLabel.setText('Image {0}'.format(self.image.numInSeries))
-        defocusLabel.setText('df = {0:.1e} um'.format(self.image.defocus * 1e6))
+        defocusLabel.setText('df = {0:.1e} nm'.format(self.image.defocus * 1e9))
 
     def changePixmap(self, toNext=True):
         newImage = self.image.next if toNext else self.image.prev
@@ -232,9 +232,11 @@ class CrossCorrWidget(QtWidgets.QWidget):
         vbox_move.addLayout(hbox_mm)
         vbox_move.addWidget(downButton)
 
-        self.dfMinEdit = LineEditWithLabel(self, labText='df min', defaultValue=str(const.dfStepMin))
-        self.dfMaxEdit = LineEditWithLabel(self, labText='df max', defaultValue=str(const.dfStepMax))
-        self.dfStepEdit = LineEditWithLabel(self, labText='step [um]', defaultValue=str(const.dfStepChange))
+        self.dfMinEdit = LineEditWithLabel(self, labText='df min [nm]', defaultValue=str(const.dfStepMin))
+        self.dfMaxEdit = LineEditWithLabel(self, labText='df max [nm]', defaultValue=str(const.dfStepMax))
+        self.dfStepEdit = LineEditWithLabel(self, labText='step [nm]', defaultValue=str(const.dfStepChange))
+        self.dfMinEdit.setFixedWidth(60)
+        self.dfMaxEdit.setFixedWidth(60)
 
         hbox_mr = QtWidgets.QHBoxLayout()
         hbox_mr.addWidget(self.dfMinEdit)
@@ -328,9 +330,9 @@ class CrossCorrWidget(QtWidgets.QWidget):
     def correlateWithImage(self, imageToCorr, fragCoords, wat):
         image = self.btnGrid.image
         mcfBest = cc.MaximizeMCFCore(imageToCorr, image, self.btnGrid.gridDim, fragCoords,
-                                      float(self.dfMinEdit.input.text()),
-                                      float(self.dfMaxEdit.input.text()),
-                                      float(self.dfStepEdit.input.text()))
+                                     float(self.dfMinEdit.input.text()),
+                                     float(self.dfMaxEdit.input.text()),
+                                     float(self.dfStepEdit.input.text()))
         shift = cc.GetShift(mcfBest)
         image.shift = (image.prev.shift if wat else [0, 0])
         cc.ShiftImageAmpBuffer(image, shift)
@@ -340,9 +342,9 @@ class CrossCorrWidget(QtWidgets.QWidget):
         imsup.SaveAmpImage(mcfBest, ccfPath)
 
     def setDefocus(self):
-        dfum = float(self.dfMinEdit.input.text())
-        self.btnGrid.image.defocus = dfum * 1e-6
-        self.defocusLabel.setText('df = {0:.1e} um'.format(dfum))
+        dfnm = float(self.dfMinEdit.input.text())
+        self.btnGrid.image.defocus = dfnm * 1e-9
+        self.defocusLabel.setText('df = {0:.1e} nm'.format(dfnm))
 
     def accessLabels(self):
         return self.imgNumLabel, self.defocusLabel
@@ -362,11 +364,12 @@ class IwfrWidget(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
+        n_images = count_linked_images(self.imageSim)
         self.numOfFirstEdit = LineEditWithLabel(self, labText='First to EWR', defaultValue='1')
-        self.numInFocusEdit = LineEditWithLabel(self, labText='In focus', defaultValue=str(const.numInFocus))
-        self.numOfImagesEdit = LineEditWithLabel(self, labText='Num. of images', defaultValue=str(const.nFiles))
+        self.numInFocusEdit = LineEditWithLabel(self, labText='In focus', defaultValue=str(n_images // 2))
+        self.numOfImagesEdit = LineEditWithLabel(self, labText='Num. of images', defaultValue=str(n_images))
         self.numOfItersEdit = LineEditWithLabel(self, labText='Num. of iterations', defaultValue=str(const.nIterations))
-        self.dfToSimEdit = LineEditWithLabel(self, labText='Defocus [um]', defaultValue='0.0')
+        self.dfToSimEdit = LineEditWithLabel(self, labText='Defocus [nm]', defaultValue='0.0')
 
         self.numOfFirstEdit.setFixedWidth(100)
         self.numInFocusEdit.setFixedWidth(100)
@@ -379,11 +382,22 @@ class IwfrWidget(QtWidgets.QWidget):
         self.phaseRadioButton = QtWidgets.QRadioButton('Phase', self)
         self.fftRadioButton = QtWidgets.QRadioButton('FFT', self)
 
+        self.phase_unwrap_rbutton = QtWidgets.QRadioButton('Phase unwrapped', self)
+        # self.phase_unwrap_rbutton.setChecked(True)
+        self.phase_wrap_rbutton = QtWidgets.QRadioButton('Phase wrapped', self)
+        self.phase_unwrap_rbutton.setDisabled(True)
+        self.phase_wrap_rbutton.setDisabled(True)
+
         simulateButton = QtWidgets.QPushButton('Simulate image', self)
         simulateButton.clicked.connect(self.simulateImage)
 
         runEwrButton = QtWidgets.QPushButton('Run EWR', self)
         runEwrButton.clicked.connect(self.runEwr)
+
+        self.export_path_edit = LineEditWithLabel(self, labText='Export path', defaultValue='img')
+        self.export_path_edit.setFixedWidth(100)
+        export_button = QtWidgets.QPushButton('Export', self)
+        export_button.clicked.connect(self.export)
 
         vbox_edit1 = QtWidgets.QVBoxLayout()
         vbox_edit1.addWidget(self.numOfFirstEdit)
@@ -393,20 +407,39 @@ class IwfrWidget(QtWidgets.QWidget):
         vbox_edit2.addWidget(self.numOfImagesEdit)
         vbox_edit2.addWidget(self.numOfItersEdit)
 
-        vbox_radio = QtWidgets.QVBoxLayout()
-        vbox_radio.addWidget(self.amplitudeRadioButton)
-        vbox_radio.addWidget(self.phaseRadioButton)
-        vbox_radio.addWidget(self.fftRadioButton)
+        disp_radio_group = QtWidgets.QButtonGroup(self)
+        disp_radio_group.addButton(self.amplitudeRadioButton)
+        disp_radio_group.addButton(self.phaseRadioButton)
+        disp_radio_group.addButton(self.fftRadioButton)
+
+        vbox_disp_radio = QtWidgets.QVBoxLayout()
+        vbox_disp_radio.addWidget(self.amplitudeRadioButton)
+        vbox_disp_radio.addWidget(self.phaseRadioButton)
+        vbox_disp_radio.addWidget(self.fftRadioButton)
+
+        phase_radio_group = QtWidgets.QButtonGroup(self)
+        phase_radio_group.addButton(self.phase_unwrap_rbutton)
+        phase_radio_group.addButton(self.phase_wrap_rbutton)
+
+        vbox_phase_radio = QtWidgets.QVBoxLayout()
+        vbox_phase_radio.addWidget(self.phase_unwrap_rbutton)
+        vbox_phase_radio.addWidget(self.phase_wrap_rbutton)
 
         vbox_sim = QtWidgets.QVBoxLayout()
         vbox_sim.addWidget(self.dfToSimEdit)
         vbox_sim.addWidget(simulateButton)
 
+        vbox_export = QtWidgets.QVBoxLayout()
+        vbox_export.addWidget(self.export_path_edit)
+        vbox_export.addWidget(export_button)
+
         hbox = QtWidgets.QHBoxLayout()
         hbox.addLayout(vbox_edit1)
         hbox.addLayout(vbox_edit2)
-        hbox.addLayout(vbox_radio)
+        hbox.addLayout(vbox_disp_radio)
+        hbox.addLayout(vbox_phase_radio)
         hbox.addLayout(vbox_sim)
+        hbox.addLayout(vbox_export)
 
         vbox = QtWidgets.QVBoxLayout()
         vbox.addLayout(hbox)
@@ -422,14 +455,24 @@ class IwfrWidget(QtWidgets.QWidget):
         self.phaseRadioButton.toggled.connect(self.displayPhase)
         self.fftRadioButton.toggled.connect(self.displayFFT)
 
+        self.phase_unwrap_rbutton.toggled.connect(self.unwrap_phase)
+        self.phase_wrap_rbutton.toggled.connect(self.wrap_phase)
+
     def displayAmplitude(self):
         self.imageSim.buffer = np.copy(self.imageSim.amPh.am)
+        # self.imageSim.UpdateBuffer()
         self.createPixmap()
+        self.phase_unwrap_rbutton.setDisabled(True)
+        self.phase_wrap_rbutton.setDisabled(True)
 
     def displayPhase(self):
-        self.imageSim.buffer = np.copy(self.imageSim.amPh.ph)
+        # self.imageSim.buffer = np.copy(self.imageSim.amPh.ph)
+        self.imageSim.UpdateBufferFromPhase()
         self.createPixmap()
-        self.imageSim.UpdateBuffer()
+        # self.imageSim.UpdateBuffer()
+        self.phase_unwrap_rbutton.setEnabled(True)
+        self.phase_unwrap_rbutton.setChecked(True)
+        self.phase_wrap_rbutton.setEnabled(True)
 
     def displayFFT(self):
         fft = cc.FFT(self.imageSim)
@@ -440,6 +483,25 @@ class IwfrWidget(QtWidgets.QWidget):
         self.imageSim.buffer = imsup.ScaleImage(diffToDisp, 0.0, 255.0)
         self.createPixmap()
         self.imageSim.UpdateBuffer()
+        self.phase_unwrap_rbutton.setDisabled(True)
+        self.phase_wrap_rbutton.setDisabled(True)
+
+    def unwrap_phase(self):
+        self.imageSim.UpdateBufferFromPhase()
+        self.createPixmap()
+        self.imageSim.UpdateBuffer()
+
+    def wrap_phase(self):
+        self.imageSim.buffer = self.imageSim.amPh.ph % (2 * np.pi)
+        self.createPixmap()
+
+    # why exported absolute-phase image looks like normal phase image?
+    def export(self):
+        export_path = self.export_path_edit.input.text() + '.png'
+        img_to_save = imsup.CopyImage(self.imageSim)
+        img_to_save.UpdateImageFromBuffer()
+        imsup.SaveAmpImage(img_to_save, export_path)
+        self.parent().parent().statusBar().showMessage('Image saved as "{0}.png"'.format(self.export_path_edit.input.text()))
 
     def createPixmap(self):
         paddedExitWave = imsup.PadImageBufferToNx512(self.imageSim, np.max(self.imageSim.buffer))
@@ -447,8 +509,7 @@ class IwfrWidget(QtWidgets.QWidget):
         qImg = QtGui.QImage(imsup.ScaleImage(paddedExitWave.buffer, 0.0, 255.0).astype(np.uint8),
                             paddedExitWave.width, paddedExitWave.height, QtGui.QImage.Format_Indexed8)
         pixmap = QtGui.QPixmap(qImg)
-        pixmap = pixmap.scaledToWidth(const.ccWidgetDim)    # nie potrafi skalowac ulamkowo
-                                                            # zrobic prosty padding do 1024
+        pixmap = pixmap.scaledToWidth(const.ccWidgetDim)
         self.display.setPixmap(pixmap)
 
     def changePixmap(self, toNext=True):
@@ -466,7 +527,7 @@ class IwfrWidget(QtWidgets.QWidget):
         cc.DetermineAbsoluteDefocus(imgList, idxInFocus)
 
         squareCoords = imsup.MakeSquareCoords(self.parent().parent().getCcWidgetRef().commonCoords)
-        print(squareCoords)
+        # print(squareCoords)
         imgListAll = imsup.CreateImageListFromFirstImage(self.imageSim)
         firstIdx = int(self.numOfFirstEdit.input.text()) - 1
         howMany = int(self.numOfImagesEdit.input.text())
@@ -478,13 +539,18 @@ class IwfrWidget(QtWidgets.QWidget):
             imsup.SaveAmpImage(imgListToEWR[idx], cropPath)
         # imgListToEWR = uw.UnwarpImageList(imgListToEWR, const.nDivForUnwarp)      # unwarp off
         exitWave = prop.PerformIWFR(imgListToEWR, int(self.numOfItersEdit.input.text()))
+        exitWave.ChangeComplexRepr(imsup.Image.cmp['CAP'])  # !!!
+        exitWave.MoveToCPU()                                # !!!
+        exitWave.amPh.ph = np.abs(exitWave.amPh.ph)         # !!!
         self.exitWave = imsup.CreateImageWithBufferFromImage(exitWave)
         self.imageSim = imsup.CreateImageWithBufferFromImage(self.exitWave)         # copy self.exitWave to self.imageSim
-        self.imageSim.MoveToCPU()
+        # self.imageSim.MoveToCPU()
         self.createPixmap()
 
+        self.imageSim.UpdateBufferFromPhase()       # !!!
+
     def simulateImage(self):
-        dfProp = float(self.dfToSimEdit.input.text()) * 1e-6
+        dfProp = float(self.dfToSimEdit.input.text()) * 1e-9
         imageSim = prop.PropagateBackToDefocus(self.exitWave, dfProp)
         self.imageSim = imsup.CreateImageWithBufferFromImage(imageSim)
         self.imageSim.UpdateBuffer()
@@ -565,6 +631,15 @@ def SimulateImageForDefocus(exitWave, dfProp):
     imageSim.UpdateBuffer()
     imageSim.MoveToCPU()
     return imageSim
+
+# --------------------------------------------------------
+
+def count_linked_images(img):
+    n_images = 0
+    while img is not None:
+        n_images += 1
+        img = img.next
+    return n_images
 
 # --------------------------------------------------------
 

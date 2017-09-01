@@ -183,19 +183,19 @@ def ReduceArrayToFindMin_dev(arr, arrRed):
 # -------------------------------------------------------------------
 
 def MaximizeMCF(img1, img2, dfStep0):
-    # predefined defocus is given in m
-    dfStep0 *= 1e6
-    dfStepHalfRange = 0.8 * abs(dfStep0) 	# 4.8 um
-    dfStepMin = dfStep0 - dfStepHalfRange 	# 1.2 um
-    dfStepMax = dfStep0 + dfStepHalfRange  	# 10.8 um
-    dfStepChange = 0.01 * abs(dfStep0)  	# 0.06 um
+    # predefined defocus is given in nm
+    dfStep0 *= 1e9
+    dfStepHalfRange = 0.8 * abs(dfStep0)
+    dfStepMin = dfStep0 - dfStepHalfRange
+    dfStepMax = dfStep0 + dfStepHalfRange
+    dfStepChange = 0.01 * abs(dfStep0)
     return MaximizeMCFCore(img1, img2, 1, [(0, 0)], dfStepMin, dfStepMax, dfStepChange)
 
 # -------------------------------------------------------------------
 
 def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepChange):
-    # defocus parameters are given in um
-    dfStepMin, dfStepMax, dfStepChange = np.array([dfStepMin, dfStepMax, dfStepChange]) * 1e-6
+    # defocus parameters are given in nm
+    dfStepMin, dfStepMax, dfStepChange = np.array([dfStepMin, dfStepMax, dfStepChange]) * 1e-9
     mcfMax = 0.0
     dfStepBest = img2.defocus - img1.defocus
     mcfBest = imsup.Image(img1.height, img1.width, imsup.Image.cmp['CRI'], imsup.Image.mem['GPU'])
@@ -216,7 +216,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
         # mcf.MoveToCPU()
         # mcfMaxCurr = np.max(mcf.amPh.am)
         # mcf.MoveToGPU()
-        mcfMaxFile.write('{0:.3f}\t{1:.3f}\n'.format(dfStep * 1e6, mcfMaxCurr))
+        mcfMaxFile.write('{0:.0f}\t{1:.3f}\n'.format(dfStep * 1e9, mcfMaxCurr))
         if mcfMaxCurr >= mcfMax:
             mcfMax = mcfMaxCurr
             dfStepBest = dfStep
@@ -224,7 +224,7 @@ def MaximizeMCFCore(img1, img2, nDiv, fragCoords, dfStepMin, dfStepMax, dfStepCh
 
     mcfMaxFile.close()
     mcfBest.defocus = dfStepBest
-    print('Best defocus step = {0:.3f} um'.format(dfStepBest * 1e6))
+    print('Best defocus step = {0:.0f} nm'.format(dfStepBest * 1e9))
     return mcfBest
 
 #-------------------------------------------------------------------
