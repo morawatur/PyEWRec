@@ -159,7 +159,7 @@ class Image:
 # -------------------------------------------------------------------
 
 class ImageWithBuffer(Image):
-    def __init__(self, height, width, cmpRepr=Image.cmp['CAP'], memType=Image.mem['CPU'], defocus=0.0, num=1, px_dim_sz=1.0):
+    def __init__(self, height, width, cmpRepr=Image.cmp['CAP'], memType=Image.mem['CPU'], defocus=0.0, num=1, px_dim_sz=-1.0):
         super(ImageWithBuffer, self).__init__(height, width, cmpRepr, memType, defocus, num, px_dim_sz)
         self.parent = super(ImageWithBuffer, self)
         self.shift = [0, 0]
