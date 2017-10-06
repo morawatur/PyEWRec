@@ -541,7 +541,7 @@ class IwfrWidget(QtWidgets.QWidget):
         exitWave = prop.PerformIWFR(imgListToEWR, int(self.numOfItersEdit.input.text()))
         exitWave.ChangeComplexRepr(imsup.Image.cmp['CAP'])  # !!!
         exitWave.MoveToCPU()                                # !!!
-        exitWave.amPh.ph = np.abs(exitWave.amPh.ph)         # !!!
+        # exitWave.amPh.ph = np.abs(exitWave.amPh.ph)         # !!!
         self.exitWave = imsup.CreateImageWithBufferFromImage(exitWave)
         self.imageSim = imsup.CreateImageWithBufferFromImage(self.exitWave)         # copy self.exitWave to self.imageSim
         # self.imageSim.MoveToCPU()
