@@ -1,5 +1,6 @@
 import numpy as np
-from accelerate.cuda import fft as cufft
+# from accelerate.cuda import fft as cufft
+from pyculib import fft as cufft
 from numba import cuda
 
 import Constants as const
